@@ -2,6 +2,7 @@
 package com.github.circuitrunners;
 
 import edu.wpi.first.wpilibj.*;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends IterativeRobot {
 
@@ -60,6 +61,12 @@ public class Robot extends IterativeRobot {
         }
 
         drive.tankDrive(moveVal, rotateVal);
+
+        SmartDashboard.putNumber("moveVal", moveVal);
+        SmartDashboard.putNumber("rotateVal", rotateVal);
+        SmartDashboard.putNumber("gyroVal", gyroVal);
+
+        SmartDashboard.putData("test", gyro);
     }
 
     @Override
