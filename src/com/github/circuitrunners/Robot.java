@@ -8,18 +8,25 @@ public class Robot extends IterativeRobot {
 
     RobotDrive drive;
 
+    VictorSP motor;
+
     Joystick joystick;
 
     AnalogGyro gyro;
+    double extra;
 
     @Override
     public void robotInit() {
 
         drive = new RobotDrive(0, 3, 4, 5);
+        motor = new VictorSP(1);
 
         joystick = new Joystick(0);
 
         gyro = new AnalogGyro(0);
+
+
+
     }
 
     @Override
@@ -34,6 +41,7 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void teleopInit() {
+        SmartDashboard.putNumber("derp", 0);
     }
 
     private boolean isGyroControlEnabled;
@@ -56,11 +64,15 @@ public class Robot extends IterativeRobot {
 
         drive.arcadeDrive(moveVal, rotateVal);
 
+
         SmartDashboard.putNumber("moveVal", moveVal);
         SmartDashboard.putNumber("rotateVal", rotateVal);
         SmartDashboard.putNumber("gyroVal", gyroVal);
 
-        SmartDashboard.putData("test", gyro);
+        SmartDashboard.putData("test", motor);
+        extra = SmartDashboard.getNumber("derp", 0);
+
+        motor.set(extra);
     }
 
     @Override
