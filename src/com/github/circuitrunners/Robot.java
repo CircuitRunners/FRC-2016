@@ -4,22 +4,27 @@ package com.github.circuitrunners;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-public class Robot extends IterativeRobot {
+import java.util.ArrayList;
 
-    RobotDrive drive;
+public class Robot extends IterativeRobot {
 
     Joystick joystick;
 
     AnalogGyro gyro;
 
+    CANTalon motors[];
+
+    ArrayList<PIDController> pids;
+
     @Override
     public void robotInit() {
-
-        drive = new RobotDrive(0, 3, 4, 5);
-
         joystick = new Joystick(0);
-
         gyro = new AnalogGyro(0);
+        motors = new CANTalon[]{new CANTalon(0), new CANTalon(3), new CANTalon(4), new CANTalon(5)};
+        pids = new ArrayList<>();
+        for (CANTalon motor : motors) {
+            pids.add(new PIDController(1, 1, 1, 1, gyro, motor));
+        }
     }
 
     @Override
@@ -34,6 +39,7 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void teleopInit() {
+
     }
 
     private boolean isGyroControlEnabled;
@@ -43,9 +49,14 @@ public class Robot extends IterativeRobot {
         double rotateVal = joystick.getTwist();
 
         double gyroVal = gyro.getAngle();
-        if (joystick.getRawButton(1)) gyro.reset();
+        if (joystick.getRawButton(1)) {
+            gyro.reset();
+        }
 
-        if (joystick.getRawButton(2)) isGyroControlEnabled = !isGyroControlEnabled;
+        if (joystick.getRawButton(2)) {
+            isGyroControlEnabled = !isGyroControlEnabled;
+        }
+
         if (isGyroControlEnabled){
             if (gyroVal > 3){
                 rotateVal = -0.15;
@@ -54,7 +65,9 @@ public class Robot extends IterativeRobot {
             }
         }
 
-        drive.arcadeDrive(moveVal, rotateVal);
+        for (CANTalon motor : motors) {
+            motor.set(joystick.getY());
+        }
 
         SmartDashboard.putNumber("moveVal", moveVal);
         SmartDashboard.putNumber("rotateVal", rotateVal);
