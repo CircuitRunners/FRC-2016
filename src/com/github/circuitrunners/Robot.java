@@ -66,28 +66,30 @@ public class Robot extends IterativeRobot {
                 rotateVal = 0.15;
             }
         }
-        for (int i = 0; i < motors.length; i++){
-            double atan = Math.atan2(joystick.getY(),joystick.getX())
-            if (0 < atan && atan < 90){
-                motors[0].set(Math.sin(atan));
-                motors[3].set(Math.sin(atan));
-                motors[4].set(1);
-                motors[5].set(1);
-            } else if (90 < atan && atan < 180) {
-                motors[4].set(Math.sin(atan));
-                motors[5].set(Math.sin(atan));
-                motors[0].set(1);
-                motors[3].set(1);
-            } else if (180 < atan && atan < 270){
-                motors[4].set(Math.sin(atan));
-                motors[5].set(Math.sin(atan));
-                motors[0].set(-1);
-                motors[3].set(-1);
-            } else if (270 < atan && atan < 360){
-                motors[0].set(Math.sin(atan));
-                motors[3].set(Math.sin(atan));
-                motors[4].set(-1);
-                motors[5].set(-1);
+        double atan = Math.atan2(joystick.getY(),joystick.getX())
+        if (0 <= atan && atan < 90){
+            motors[0].set(Math.sin(atan));
+            motors[3].set(Math.sin(atan));
+            motors[4].set(1);
+            motors[5].set(1);
+        } else if (90 <= atan && atan < 180) {
+            motors[4].set(Math.sin(atan));
+            motors[5].set(Math.sin(atan));
+            motors[0].set(1);
+            motors[3].set(1);
+        } else if (180 <= atan && atan < 270){
+            motors[4].set(Math.sin(atan));
+            motors[5].set(Math.sin(atan));
+            motors[0].set(-1);
+            motors[3].set(-1);
+        } else if (270 <= atan && atan < 360){
+            motors[0].set(Math.sin(atan));
+            motors[3].set(Math.sin(atan));
+            motors[4].set(-1);
+            motors[5].set(-1);
+        } else {
+            for (CANTalon motor : motors) {
+                motor.set(0);
             }
         }
         SmartDashboard.putNumber("moveVal", moveVal);
