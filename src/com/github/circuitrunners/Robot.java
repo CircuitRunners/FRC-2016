@@ -66,8 +66,8 @@ public class Robot extends IterativeRobot {
                 rotateVal = 0.15;
             }
         }
-        double atan = Math.atan2(joystick.getY(),joystick.getX())
-        if (0 <= atan && atan < 90){
+        double atan = Math.atan2(joystick.getY(),joystick.getX());
+        if (0 <= atan && atan < 90) {
             motors[0].set(Math.sin(atan));
             motors[3].set(Math.sin(atan));
             motors[4].set(1);
@@ -95,7 +95,6 @@ public class Robot extends IterativeRobot {
         SmartDashboard.putNumber("moveVal", moveVal);
         SmartDashboard.putNumber("rotateVal", rotateVal);
         SmartDashboard.putNumber("gyroVal", gyroVal);
-
         SmartDashboard.putData("test", gyro);
     }
 
