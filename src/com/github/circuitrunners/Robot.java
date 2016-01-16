@@ -6,23 +6,18 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends IterativeRobot {
 
-    VictorSP leftESC, rightESC;
     RobotDrive drive;
 
-    Joystick xbox;
+    Joystick joystick;
 
     AnalogGyro gyro;
-
-    PIDController leftPID, rightPID;
 
     @Override
     public void robotInit() {
 
-        leftESC = new VictorSP(0);
-        rightESC = new VictorSP(1);
-        drive = new RobotDrive(leftESC, rightESC);
+        drive = new RobotDrive(0, 3, 4, 5);
 
-        xbox = new Joystick(0);
+        joystick = new Joystick(0);
 
         gyro = new AnalogGyro(0);
     }
@@ -44,13 +39,13 @@ public class Robot extends IterativeRobot {
     private boolean isGyroControlEnabled;
     @Override
     public void teleopPeriodic() {
-        double moveVal = xbox.getY(Joystick.Hand.kLeft);
-        double rotateVal = xbox.getX(Joystick.Hand.kRight);
+        double moveVal = joystick.getY();
+        double rotateVal = joystick.getTwist();
 
         double gyroVal = gyro.getAngle();
-        if (xbox.getRawButton(1)) gyro.reset();
+        if (joystick.getRawButton(1)) gyro.reset();
 
-        if (xbox.getRawButton(2)) isGyroControlEnabled = !isGyroControlEnabled;
+        if (joystick.getRawButton(2)) isGyroControlEnabled = !isGyroControlEnabled;
         if (isGyroControlEnabled){
             if (gyroVal > 3){
                 rotateVal = -0.15;
@@ -59,7 +54,7 @@ public class Robot extends IterativeRobot {
             }
         }
 
-        drive.tankDrive(moveVal, rotateVal);
+        drive.arcadeDrive(moveVal, rotateVal);
 
         SmartDashboard.putNumber("moveVal", moveVal);
         SmartDashboard.putNumber("rotateVal", rotateVal);
