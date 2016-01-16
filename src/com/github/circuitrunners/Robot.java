@@ -28,7 +28,7 @@ public class Robot extends IterativeRobot {
         }
         */
         motors[0].setInverted(true);
-        motors[3].setInverted(true);
+        motors[1].setInverted(true);
     }
 
     @Override
@@ -78,6 +78,7 @@ public class Robot extends IterativeRobot {
                 motor.set(0);
             }
         }
+        System.out.println("\n");
         SmartDashboard.putNumber("rotateVal", rotateVal);
         SmartDashboard.putData("test", gyro);
     }
