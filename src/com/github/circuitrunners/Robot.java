@@ -61,14 +61,13 @@ public class Robot extends IterativeRobot {
 
         double gyroVal = gyro.getAngle();
         if (joystick.getRawButton(2)) gyro.reset();
-        if (joystick.getRawButton(4)) pidController.enable();
+        if (joystick.getRawButton(4)) {
+            if (pidController.isEnabled()) pidController.disable();
+            else pidController.enable();
+        }
         if (pidController.isEnabled()){
-//            if (gyroVal > 3){
-//                rotateVal = -0.15;
-//            } else if (gyroVal < 177) {
-//                rotateVal = 0.15;
-//            }
             rotateVal = pidController.get();
+            pidController.reset();
         }
 
         drive.arcadeDrive(moveVal, rotateVal);
@@ -83,6 +82,7 @@ public class Robot extends IterativeRobot {
         double kD = SmartDashboard.getNumber("pid_kD");
         double kF = SmartDashboard.getNumber("pid_kF");
         pidController.setPID(kP, kI, kD, kF);
+        SmartDashboard.putNumber("pidError", pidController.getError());
         SmartDashboard.putNumber("pidValue", pidController.get());
 
         motor.set(SmartDashboard.getNumber("derp", 0));
@@ -91,9 +91,7 @@ public class Robot extends IterativeRobot {
     @Override
     public void testPeriodic() {}
 
-
     private class PIDDummy implements PIDOutput {
-        @Override
         public void pidWrite(double output) {}
     }
 }
