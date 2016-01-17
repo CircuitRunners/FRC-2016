@@ -2,6 +2,7 @@
 package com.github.circuitrunners;
 
 import edu.wpi.first.wpilibj.*;
+import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends IterativeRobot {
@@ -26,6 +27,8 @@ public class Robot extends IterativeRobot {
         gyro = new AnalogGyro(0);
 
 
+        LiveWindow.addActuator("Drive", "test", motor);
+        LiveWindow.addSensor("Drive", "gyro", gyro);
 
     }
 
@@ -69,15 +72,12 @@ public class Robot extends IterativeRobot {
         SmartDashboard.putNumber("rotateVal", rotateVal);
         SmartDashboard.putNumber("gyroVal", gyroVal);
 
-        SmartDashboard.putData("test", motor);
-        extra = SmartDashboard.getNumber("derp", 0);
-
-        motor.set(extra);
+        motor.set(SmartDashboard.getNumber("derp", 0));
     }
 
     @Override
-    public void testPeriodic() {
+    public void testPeriodic() {}
 
-    }
+
 
 }
