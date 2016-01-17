@@ -14,7 +14,6 @@ public class Robot extends IterativeRobot {
     Joystick joystick;
 
     AnalogGyro gyro;
-    double extra;
 
     @Override
     public void robotInit() {
@@ -25,7 +24,6 @@ public class Robot extends IterativeRobot {
         joystick = new Joystick(0);
 
         gyro = new AnalogGyro(0);
-
 
         LiveWindow.addActuator("Drive", "test", motor);
         LiveWindow.addSensor("Drive", "gyro", gyro);
@@ -48,21 +46,23 @@ public class Robot extends IterativeRobot {
     }
 
     private boolean isGyroControlEnabled;
+    PIDValue pidValue = new PIDValue();
+    PIDController pidController = new PIDController(0, 0, 0, gyro, pidValue);
     @Override
     public void teleopPeriodic() {
         double moveVal = joystick.getY();
         double rotateVal = joystick.getTwist();
 
         double gyroVal = gyro.getAngle();
-        if (joystick.getRawButton(1)) gyro.reset();
-
-        if (joystick.getRawButton(2)) isGyroControlEnabled = !isGyroControlEnabled;
+        if (joystick.getRawButton(2)) gyro.reset();
+        if (joystick.getRawButton(4)) isGyroControlEnabled = !isGyroControlEnabled;
         if (isGyroControlEnabled){
-            if (gyroVal > 3){
-                rotateVal = -0.15;
-            } else if (gyroVal < 177) {
-                rotateVal = 0.15;
-            }
+//            if (gyroVal > 3){
+//                rotateVal = -0.15;
+//            } else if (gyroVal < 177) {
+//                rotateVal = 0.15;
+//            }
+            rotateVal = pidValue.getPIDValue();
         }
 
         drive.arcadeDrive(moveVal, rotateVal);
