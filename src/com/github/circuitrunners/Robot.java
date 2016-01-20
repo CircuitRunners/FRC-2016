@@ -27,7 +27,7 @@ public class Robot extends IterativeRobot {
 
         gyro = new AnalogGyro(0);
 
-        pidController = new PIDController(0, 0, 0, gyro, new PIDDummy());
+        pidController = new PIDController(0, 0, 0, gyro, motor);
 
         LiveWindow.addActuator("Drive", "test", motor);
         LiveWindow.addSensor("Drive", "gyro", gyro);
@@ -53,39 +53,52 @@ public class Robot extends IterativeRobot {
         SmartDashboard.putNumber("pid_kI", pidController.getI());
         SmartDashboard.putNumber("pid_kD", pidController.getD());
         SmartDashboard.putNumber("pid_kF", pidController.getF());
+        pidController.enable();
     }
+    boolean triggerPressed;
     @Override
     public void teleopPeriodic() {
-        double moveVal = joystick.getY();
+        double moveVal = -joystick.getY();
         double rotateVal = joystick.getTwist();
 
         double gyroVal = gyro.getAngle();
         if (joystick.getRawButton(2)) gyro.reset();
-        if (joystick.getRawButton(4)) {
-            if (pidController.isEnabled()) pidController.disable();
-            else pidController.enable();
-        }
         if (pidController.isEnabled()){
-            rotateVal = pidController.get();
-            pidController.reset();
+            if (Math.abs(joystick.getTwist()) > 0.2) {
+                pidController.setSetpoint(gyro.getAngle());
+                rotateVal += pidController.get();
+            } else {
+                rotateVal = pidController.get();
+            }
+        }
+        if (joystick.getRawButton(4) && !triggerPressed) {
+            pidController.setSetpoint(gyro.getAngle());
+            triggerPressed = true;
+        }
+        if (joystick.getRawButton(4)){
+            pidController.enable();
+        } else {
+            pidController.disable();
+            triggerPressed = false;
         }
 
-        drive.arcadeDrive(moveVal, rotateVal);
+//        drive.arcadeDrive(moveVal, rotateVal);
 
         SmartDashboard.putNumber("moveVal", moveVal);
         SmartDashboard.putNumber("rotateVal", rotateVal);
         SmartDashboard.putNumber("gyroVal", gyroVal);
 
         SmartDashboard.putBoolean("isPIDEnabled", pidController.isEnabled());
+        SmartDashboard.putNumber("Setpoint", pidController.getSetpoint());
         double kP = SmartDashboard.getNumber("pid_kP");
         double kI = SmartDashboard.getNumber("pid_kI");
         double kD = SmartDashboard.getNumber("pid_kD");
-        double kF = SmartDashboard.getNumber("pid_kF");
-        pidController.setPID(kP, kI, kD, kF);
+        //double kF = SmartDashboard.getNumber("pid_kF");
+        pidController.setPID(kP, kI, kD);
         SmartDashboard.putNumber("pidError", pidController.getError());
         SmartDashboard.putNumber("pidValue", pidController.get());
 
-        motor.set(SmartDashboard.getNumber("derp", 0));
+        motor.set(SmartDashboard.getNumber("derp",0));
     }
 
     @Override
