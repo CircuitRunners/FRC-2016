@@ -20,14 +20,16 @@ public class Robot extends IterativeRobot {
     @Override
     public void robotInit() {
 
-        drive = new RobotDrive(0, 3, 4, 5);
-        motor = new VictorSP(1);
+        drive = new RobotDrive(5,4,1,0);
+        motor = new VictorSP(3);
 
         joystick = new Joystick(0);
 
         gyro = new AnalogGyro(0);
 
         pidController = new PIDController(0, 0, 0, gyro, output -> {});
+
+        drive.setExpiration(0.5);
 
     }
 
@@ -53,13 +55,13 @@ public class Robot extends IterativeRobot {
     boolean triggerPressed;
     @Override
     public void teleopPeriodic() {
-        double moveVal = -joystick.getY();
-        double rotateVal = joystick.getTwist();
+        double moveVal = -joystick.getY(); // wtf are directions
+        double rotateVal = -joystick.getTwist(); //jesus cant save you now
 
         double gyroVal = gyro.getAngle();
         if (joystick.getRawButton(2)) gyro.reset();
         if (pidController.isEnabled()){
-            if (Math.abs(joystick.getTwist()) > 0.2) {
+            if (Math.abs(rotateVal) > 0.2) {
                 pidController.setSetpoint(gyro.getAngle());
                 rotateVal += pidController.get();
             } else {
