@@ -27,11 +27,7 @@ public class Robot extends IterativeRobot {
 
         gyro = new AnalogGyro(0);
 
-        pidController = new PIDController(0, 0, 0, gyro, motor);
-
-        LiveWindow.addActuator("Drive", "test", motor);
-        LiveWindow.addSensor("Drive", "gyro", gyro);
-        LiveWindow.addActuator("Drive", "pid", pidController);
+        pidController = new PIDController(0, 0, 0, gyro, output -> {});
 
     }
 
@@ -52,7 +48,6 @@ public class Robot extends IterativeRobot {
         SmartDashboard.putNumber("pid_kP", pidController.getP());
         SmartDashboard.putNumber("pid_kI", pidController.getI());
         SmartDashboard.putNumber("pid_kD", pidController.getD());
-        SmartDashboard.putNumber("pid_kF", pidController.getF());
         pidController.enable();
     }
     boolean triggerPressed;
@@ -82,7 +77,7 @@ public class Robot extends IterativeRobot {
             triggerPressed = false;
         }
 
-//        drive.arcadeDrive(moveVal, rotateVal);
+        drive.arcadeDrive(moveVal, rotateVal);
 
         SmartDashboard.putNumber("moveVal", moveVal);
         SmartDashboard.putNumber("rotateVal", rotateVal);
@@ -93,18 +88,10 @@ public class Robot extends IterativeRobot {
         double kP = SmartDashboard.getNumber("pid_kP");
         double kI = SmartDashboard.getNumber("pid_kI");
         double kD = SmartDashboard.getNumber("pid_kD");
-        //double kF = SmartDashboard.getNumber("pid_kF");
         pidController.setPID(kP, kI, kD);
         SmartDashboard.putNumber("pidError", pidController.getError());
         SmartDashboard.putNumber("pidValue", pidController.get());
 
         motor.set(SmartDashboard.getNumber("derp",0));
-    }
-
-    @Override
-    public void testPeriodic() {}
-
-    private class PIDDummy implements PIDOutput {
-        public void pidWrite(double output) {}
     }
 }
