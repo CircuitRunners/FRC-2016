@@ -1,11 +1,8 @@
-/build.xml
-/build.properties
+*.sh
 /build
 /dist
 /.idea
 *.class
-
-commit-and-text.sh
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
