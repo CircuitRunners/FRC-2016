@@ -61,7 +61,7 @@ public class Robot extends IterativeRobot {
         double gyroVal = gyro.getAngle();
         if (joystick.getRawButton(2)) gyro.reset();
         if (pidController.isEnabled()){
-            if (Math.abs(joystick.getX()) > 0.2) {
+            if (Math.abs(rotateVal) > 0.2) {
                 pidController.setSetpoint(gyro.getAngle());
                 rotateVal += pidController.get();
             } else {
