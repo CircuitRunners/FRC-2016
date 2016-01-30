@@ -87,7 +87,7 @@ public class Robot extends IterativeRobot {
         if (input) {
             double throttleVal = -joystick.getThrottle();
 
-            moveVal = throttleMath(throttleVal) * moveVal;
+            moveVal *= throttleMath(throttleVal);
             rotateVal = scalePower(rotateVal, 0.1, 0.7, 2);
         }
 
