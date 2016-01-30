@@ -1,10 +1,8 @@
 
 package com.github.circuitrunners;
 
-import edu.wpi.first.wpilibj.AnalogGyro;
-import edu.wpi.first.wpilibj.IterativeRobot;
-import edu.wpi.first.wpilibj.Joystick;
-import edu.wpi.first.wpilibj.RobotDrive;
+import edu.wpi.first.wpilibj.*;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import java.lang.reflect.Constructor;
 import java.util.concurrent.ExecutorService;
@@ -24,13 +22,14 @@ public class Robot extends IterativeRobot {
     public void robotInit() {
 
         drive = new RobotDrive(5,4,1,0);
+        drive.setExpiration(0.5);
+
         motor = new VictorSP(3);
 
         joystick = new Joystick(0);
 
         gyro = new AnalogGyro(0);
-
-        drive.setExpiration(0.5);
+        gyro.calibrate();
 
     }
 
@@ -79,16 +78,12 @@ public class Robot extends IterativeRobot {
     @Override
     public void teleopInit() {
         SmartDashboard.putNumber("derp", 0);
-
-        SmartDashboard.putNumber("pid_kP", pidController.getP());
-        SmartDashboard.putNumber("pid_kI", pidController.getI());
-        SmartDashboard.putNumber("pid_kD", pidController.getD());
-        pidController.enable();
     }
-    boolean triggerPressed;
+
     @Override
     public void teleopPeriodic() {
-        drive(joystick.getY(), joystick.getX());
+        drive(joystick);
+
     }
 
     public void drive(double moveVal, double rotateVal) {
@@ -101,6 +96,12 @@ public class Robot extends IterativeRobot {
 //                rotateVal += Math.sin(gyroVal);
 //            }
 //        }
+
+        drive.arcadeDrive(moveVal, rotateVal);
+    }
+
+    private void drive(Joystick joystick) {
+
         double moveVal = -joystick.getY(); // wtf are directions
         double twistVal = -joystick.getTwist(); //jesus cant save you now
         double throttleVal = -joystick.getThrottle(); //why is everything negative?
@@ -112,7 +113,7 @@ public class Robot extends IterativeRobot {
 
         SmartDashboard.putNumber("moveVal", moveVal);
         SmartDashboard.putNumber("rotateVal", rotateVal);
-        SmartDashboard.putNumber("gyroVal", gyroVal);
+        SmartDashboard.putNumber("gyro", gyro.getAngle());
 
         motor.set(SmartDashboard.getNumber("derp",0));
     }
