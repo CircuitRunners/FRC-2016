@@ -72,7 +72,7 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void teleopPeriodic() {
-        drive(joystick.getY(), joystick.getX(), true);
+        drive(-joystick.getY(), -joystick.getX(), true);
     }
 
     private void drive(double moveVal, double rotateVal) {
