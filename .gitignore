@@ -1,5 +1,7 @@
+/frc_2016_stronghold.iml
 *.sh
 /build
+/sysProps.xml
 /dist
 /.idea
 *.class
