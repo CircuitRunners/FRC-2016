@@ -3,10 +3,16 @@ package com.github.circuitrunners;
 
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import com.github.circuitrunners.Calib;
 
 public class Robot extends IterativeRobot {
 
     RobotDrive drive;
+
+    VictorSP frontLeft;
+    VictorSP frontRight;
+    VictorSP rearLeft;
+    VictorSP rearRight;
 
     VictorSP motor;
 
@@ -16,10 +22,19 @@ public class Robot extends IterativeRobot {
 
     PIDController pidController;
 
+    Thread driveThread;
+
+    Calib math;
+
     @Override
     public void robotInit() {
 
-        drive = new RobotDrive(5,4,1,0);
+        frontLeft = new VictorSP(0);
+        frontRight = new VictorSP(5);
+        rearLeft = new VictorSP(1);
+        rearRight = new VictorSP(4);
+
+        drive = new RobotDrive(frontLeft,frontRight,rearLeft,rearRight);
         motor = new VictorSP(3);
 
         joystick = new Joystick(0);
@@ -27,6 +42,8 @@ public class Robot extends IterativeRobot {
         gyro = new AnalogGyro(0);
 
         pidController = new PIDController(0, 0, 0, gyro, output -> {});
+
+        driveThread = new Thread();
 
         drive.setExpiration(0.5);
 
@@ -44,22 +61,24 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void teleopInit() {
-        SmartDashboard.putNumber("derp", 0);
+        SmartDashboard.putNumber("derp", 0); //save "derp" to dictionary
 
         SmartDashboard.putNumber("pid_kP", pidController.getP());
         SmartDashboard.putNumber("pid_kI", pidController.getI());
         SmartDashboard.putNumber("pid_kD", pidController.getD());
         pidController.enable();
     }
+
     boolean triggerPressed;
+
     @Override
     public void teleopPeriodic() {
         double moveVal = -joystick.getY(); // wtf are directions
         double twistVal = -joystick.getTwist(); //jesus cant save you now
         double throttleVal = -joystick.getThrottle(); //why is everything negative?
 
-        double rotateVal = scalePower(twistVal, 0.1, 0.7, 2); //could make magic numbers into constants but who cares
-        double throttledMove = throttleMath(throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
+        double rotateVal = math.scalePower(twistVal, 0.1, 0.7, 2); //could make magic numbers into constants but who cares
+        double throttledMove = math.throttleMath(throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
         //there's no code in this line but who cares
         double gyroVal = gyro.getAngle();
         if (joystick.getRawButton(2)) gyro.reset();
@@ -98,46 +117,5 @@ public class Robot extends IterativeRobot {
         SmartDashboard.putNumber("pidValue", pidController.get());
 
         motor.set(SmartDashboard.getNumber("derp",0));
-    }
-
-    private double scaleLinear(double input, double min, double scale) {
-        double output = 0;
-        if(Math.abs(input) < min) {
-            output = 0;
-        }
-        else {
-            output = scale * input;
-        }
-        return output;
-    }
-
-    private double scaleDoubleFlat(double input, double min, double scale, double power){
-        double output = 0;
-        if(Math.abs(input) < min) {
-            output = 0;
-        }
-        else if(Math.abs(input) > scale){
-            output = Math.signum(input) * scale;
-        }
-        else{
-            output = scale * Math.signum(input) * Math.abs(Math.pow(input/scale,power));
-        }
-        return output;
-    }
-
-    private double scalePower(double input, double min, double scale, double power){
-        double output = 0;
-        if(Math.abs(input) < min) {
-            output = 0;
-        }
-        else {
-            output = scale * Math.signum(input) * Math.abs(Math.pow(input,power));
-        }
-        return output;
-    }
-
-    private double throttleMath(double input){
-        double output = (input+1)/2;
-        return output;
     }
 }
