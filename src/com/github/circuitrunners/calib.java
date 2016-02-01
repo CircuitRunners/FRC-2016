@@ -1,11 +1,11 @@
 package com.github.circuitrunners;
 
 /**
- * Useful math boys
+ * Useful Calib boys
  */
 public class Calib {
 /** Turns a -1 to 1 into 0 to 1 value */
-    public double throttleMath(double input){
+    public static double throttleMath(double input){
         double output = (input+1)/2;
         return output;
     }
@@ -17,7 +17,7 @@ public class Calib {
  *  @param scale: factor to scale down by, also max value, min < x < 1
  *  @return will max out at input = 1
  */
-    public double scaleLinear(double input, double min, double scale) {
+    public static double scaleLinear(double input, double min, double scale) {
         double output;
         if(Math.abs(input) < min) {
             output = 0;
@@ -37,7 +37,7 @@ public class Calib {
      * @param power power to scale by, 1 <= x
      * @return will max out at input = scale
      */
-    public double scaleDoubleFlat(double input, double min, double scale, double power){
+    public static double scaleDoubleFlat(double input, double min, double scale, double power){
         double output;
         if(Math.abs(input) < min) {
             output = 0;
@@ -61,7 +61,7 @@ public class Calib {
      * @return will max out at input = 1
      */
 
-    public double scalePower(double input, double min, double scale, double power){
+    public static double scalePower(double input, double min, double scale, double power){
         double output;
         if(Math.abs(input) < min) {
             output = 0;
