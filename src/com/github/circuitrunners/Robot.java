@@ -74,8 +74,8 @@ public class Robot extends IterativeRobot {
         double twistVal = -joystick.getTwist(); //jesus cant save you now
         double throttleVal = -joystick.getThrottle(); //why is everything negative?
 
-        double rotateVal = Calib.scalePower(twistVal, 0.1, 0.7, 2); //could make magic numbers into constants but who cares
-        double throttledMove = Calib.throttleMath(throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
+        double rotateVal = CalibMath.scalePower(twistVal, 0.1, 0.7, 2); //could make magic numbers into constants but who cares
+        double throttledMove = CalibMath.throttleMath(throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
         //there's no code in this line but who cares
         double gyroVal = gyro.getAngle();
         if (joystick.getRawButton(2)) gyro.reset();

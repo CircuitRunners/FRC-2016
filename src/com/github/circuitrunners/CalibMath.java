@@ -71,4 +71,42 @@ public class CalibMath {
         }
         return output;
     }
+
+    /**
+     * If input is smaller than a min value returns 0
+     * @param input: value to deadband
+     * @param min: minimum value to return > 0
+     * @return
+     */
+    public static double deadband(double input, double min){
+        double output;
+        if(Math.abs(input) < min) {
+            output = 0;
+        }
+        else {
+            output = input;
+        }
+        return output;
+    }
+
+    /**
+     * If input is smaller than a min value returns 0, if input is larger than max value returns max
+     * @param input: value to deadband
+     * @param min: minimum value to return > 0
+     * @param max: maximum value to return
+     * @return
+     */
+    public static double deadband(double input, double min, double max){
+        double output;
+        if(Math.abs(input) < min) {
+            output = 0;
+        }
+        else if(Math.abs(input) > max ) {
+            output = Math.signum(input) * max;
+        }
+        else {
+            output = input;
+        }
+        return output;
+    }
 }
