@@ -1,9 +1,9 @@
 package com.github.circuitrunners;
 
 /**
- * Useful Calib boys
+ * Useful CalibMath boys
  */
-public class Calib {
+public class CalibMath {
 /** Turns a -1 to 1 into 0 to 1 value */
     public static double throttleMath(double input){
         double output = (input+1)/2;
