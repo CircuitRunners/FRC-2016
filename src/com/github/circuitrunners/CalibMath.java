@@ -1,7 +1,7 @@
 package com.github.circuitrunners;
 
 /**
- * Useful CalibMath boys
+ * Useful CalibMath, living creatures
  */
 public class CalibMath {
 /** Turns a -1 to 1 into 0 to 1 value */
