@@ -37,6 +37,7 @@ public class Robot extends IterativeRobot {
         joystick = new Joystick(0);
 
         gyro = new AnalogGyro(0);
+        gyro.calibrate();
 
         pidController = new PIDController(0, 0, 0, gyro, output -> {});
 
