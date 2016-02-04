@@ -31,14 +31,14 @@ public class Robot extends IterativeRobot {
         rearLeft = new VictorSP(1);
         rearRight = new VictorSP(4);
 
-        drive = new RobotDrive(frontLeft,frontRight,rearLeft,rearRight);
+        drive = new RobotDrive(frontLeft,rearLeft,frontRight,rearRight);
         motor = new VictorSP(3);
 
         joystick = new Joystick(0);
 
         gyro = new AnalogGyro(0);
 
-        pidController = new PIDController(0, 0, 0, gyro, output -> {});
+        pidController = new PIDController(0.05, 0, 0.1, gyro, output -> {});
 
         driveThread = new Thread();
 
@@ -66,13 +66,13 @@ public class Robot extends IterativeRobot {
         pidController.enable();
     }
 
-    boolean triggerPressed;
+    boolean triggerPressed; //so lonely
 
     @Override
     public void teleopPeriodic() {
-        double moveVal = -joystick.getY(); // wtf are directions
-        double twistVal = -joystick.getTwist(); //jesus cant save you now
-        double throttleVal = -joystick.getThrottle(); //why is everything negative?
+        double moveVal = -joystick.getY();
+        double twistVal = joystick.getTwist();
+        double throttleVal = -joystick.getThrottle();
 
         double rotateVal = CalibMath.scalePower(twistVal, 0.1, 0.7, 2); //could make magic numbers into constants but who cares
         double throttledMove = CalibMath.throttleMath(throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
