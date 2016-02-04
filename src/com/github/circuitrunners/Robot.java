@@ -6,6 +6,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends IterativeRobot {
 
+    public static final double KP = 0.05;
+    public static final double KD = 0.1;
     RobotDrive drive;
 
     VictorSP frontLeft;
@@ -31,7 +33,7 @@ public class Robot extends IterativeRobot {
         rearLeft = new VictorSP(1);
         rearRight = new VictorSP(4);
 
-        drive = new RobotDrive(frontLeft,frontRight,rearLeft,rearRight);
+        drive = new RobotDrive(frontLeft,rearLeft,frontRight,rearRight);
         motor = new VictorSP(3);
 
         joystick = new Joystick(0);
@@ -39,7 +41,7 @@ public class Robot extends IterativeRobot {
         gyro = new AnalogGyro(0);
         gyro.calibrate();
 
-        pidController = new PIDController(0, 0, 0, gyro, output -> {});
+        pidController = new PIDController(KP, 0,  KD, gyro, output -> {});
 
         driveThread = new Thread();
 
@@ -72,7 +74,7 @@ public class Robot extends IterativeRobot {
     @Override
     public void teleopPeriodic() {
         double moveVal = -joystick.getY(); // wtf are directions
-        double twistVal = -joystick.getTwist(); //jesus cant save you now
+        double twistVal = joystick.getTwist(); //jesus cant save you now
         double throttleVal = -joystick.getThrottle(); //why is everything negative?
 
         double rotateVal = CalibMath.scalePower(twistVal, 0.1, 0.7, 2); //could make magic numbers into constants but who cares
@@ -92,7 +94,7 @@ public class Robot extends IterativeRobot {
             pidController.setSetpoint(gyro.getAngle());
             triggerPressed = true;
         }
-        if (joystick.getRawButton(4)){
+        if (joystick.getRawButton(4)||joystick.getRawButton(3)){
             pidController.enable();
         } else {
             pidController.disable();
