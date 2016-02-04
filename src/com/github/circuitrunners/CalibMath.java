@@ -1,5 +1,7 @@
 package com.github.circuitrunners;
 
+import java.util.Vector;
+
 /**
  * Useful CalibMath, living creatures
  */
