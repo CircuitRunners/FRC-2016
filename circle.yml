@@ -23,7 +23,7 @@ checkout:
 #    - git submodule sync
 #    - git submodule update --init # use submodules
     # Check if files exist
-    - if [ ! -d "$WPILIB" ]; then echo "WPILib does not exist!"
+    - if [ ! -d "$WPILIB" ]; then echo "WPILib does not exist!";
 
 ## Customize dependencies
 dependencies:
