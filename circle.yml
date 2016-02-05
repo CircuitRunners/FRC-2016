@@ -19,35 +19,23 @@ machine:
     CIRCLE_DIR: circleci
     WPILIB: circleci/wpilib
 
-  post:
-    - if [ ! -d "$WPILIB"]; then echo "No wpilib in circleci directory!"; exit; fi
-
 ## Customize checkout
 #checkout:
 #  post:
 #    - git submodule sync
 #    - git submodule update --init # use submodules
+    # Check if files exist
+    - if [ ! -d "$CIRCLE_DIR" ]; then echo "No circleci directory!"; exit; fi
+    - if [ ! -d "$WPILIB" ]; then echo "No wpilib in circleci directory!"; exit; fi
+    - if [ ! -f "$WPILIB"/build.xml ]; then echo "Ant build does not exist!" exit; fi
+    - if [ ! -f "$WPILIB"/wpilib.properties ]; then echo "WPILib properties do not exist!" exit; fi
 
 ## Customize dependencies
-#dependencies:
-#  pre:
-#    - npm install coffeescript # install from a different package manager
-
-#  override:
-#    - bundle install: # note ':' here
-#        timeout: 180 # fail if command has no output for 3 minutes
-
+dependencies:
   # we automatically cache and restore many dependencies between
   # builds. If you need to, you can add custom paths to cache:
   cache_directories:
-    - "~/circleci" # circleci testing
-
-## Customize database setup
-#database:
-#  override:
-    # replace CircleCI's generated database.yml
-#    - cp config/database.yml.ci config/database.yml
-#    - bundle exec rake db:create db:schema:load
+    - "circleci" # circleci testing
 
 ## Customize test commands
 #test:
