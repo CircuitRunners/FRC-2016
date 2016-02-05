@@ -124,4 +124,33 @@ public class CalibMath {
         }
         return Math.sqrt(sum);
     }
+
+    /**
+     * Finds dotproduct of input vectors
+     * @param a: double array of vector A
+     * @param b: double array of vector B
+     * @return
+     */
+    public static double dotProduct(double[] a, double[] b){
+        if (a.length != b.length) return 0;
+        double sum = 0;
+        for (int i=0; i<a.length; i++){
+            sum += a[i] * b[i];
+        }
+        return sum;
+    }
+
+    /**
+     * Finds angle between two vectors
+     * @param a: double array of vector A
+     * @param b: double array of vector B
+     * @return
+     */
+    public static double angle(double[] a, double[] b){
+        if (a.length != b.length) return 0;
+        double dot = dotProduct(a,b);
+        double magA = magnitude(a);
+        double magB = magnitude(b);
+        return Math.acos(dot/(magA*magB));
+    }
 }
