@@ -15,8 +15,7 @@ machine:
 
   # Add some environment variables
   environment:
-    CIRCLE_DIR: circleci
-    WPILIB: circleci/wpilib
+    WPILIB: wpilib
 
 ## Customize checkout
 checkout:
@@ -24,10 +23,7 @@ checkout:
 #    - git submodule sync
 #    - git submodule update --init # use submodules
     # Check if files exist
-    - if [ ! -d "$CIRCLE_DIR" ]; then echo "No circleci directory!"; exit; fi
-    - if [ ! -d "$WPILIB" ]; then echo "No wpilib in circleci directory!"; exit; fi
-    - if [ ! -f "$WPILIB"/build.xml ]; then echo "Ant build does not exist!" exit; fi
-    - if [ ! -f "$WPILIB"/wpilib.properties ]; then echo "WPILib properties do not exist!" exit; fi
+    - if [ ! -d "$WPILIB" ]; then echo "WPILib does not exist!"
 
 ## Customize dependencies
 dependencies:
@@ -39,7 +35,7 @@ dependencies:
 ## Customize test commands
 test:
   override:
-    - ant clean build -buildfile circle_build.xml
+    - ant -f circle_build.xml deploy
 #  post:
 
 ## Customize deployment commands
