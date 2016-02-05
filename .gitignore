@@ -1,6 +1,7 @@
 *.sh
 /build.xml
 /build.properties
+/wpilib
 /build
 /dist
 /.idea
