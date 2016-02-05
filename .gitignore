@@ -1,4 +1,6 @@
 *.sh
+/build.xml
+/build.properties
 /build
 /dist
 /.idea
