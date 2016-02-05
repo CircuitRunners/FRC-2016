@@ -20,8 +20,8 @@ machine:
     WPILIB: circleci/wpilib
 
 ## Customize checkout
-#checkout:
-#  post:
+checkout:
+  post:
 #    - git submodule sync
 #    - git submodule update --init # use submodules
     # Check if files exist
