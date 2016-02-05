@@ -6,8 +6,7 @@ machine:
 
   # Version of ruby to use
   java:
-    version:
-      openjdk8
+    version: openjdk8
 
   # Override /etc/hosts
 #  hosts:
