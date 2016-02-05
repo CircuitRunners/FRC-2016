@@ -111,4 +111,17 @@ public class CalibMath {
         }
         return output;
     }
+
+    /**
+     * Finds the magnitude of input vector
+     * @param input: double array of vector values
+     * @return positive number
+     */
+    public static double magnitude(double[] input){
+        double sum = 0;
+        for (int i=0; i<input.length; i++){
+            sum += input[i] * input[i];
+        }
+        return Math.sqrt(sum);
+    }
 }
