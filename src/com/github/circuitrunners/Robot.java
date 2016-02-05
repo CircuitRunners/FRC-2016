@@ -6,6 +6,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends IterativeRobot {
 
+    public static final double KP = 0.05;
+    public static final double KD = 0.1;
     RobotDrive drive;
 
     VictorSP frontLeft;
@@ -37,8 +39,10 @@ public class Robot extends IterativeRobot {
         joystick = new Joystick(0);
 
         gyro = new AnalogGyro(0);
+        gyro.calibrate();
 
-        pidController = new PIDController(0.05, 0, 0.1, gyro, output -> {});
+        pidController = new PIDController(KP, 0,  KD, gyro, output -> {});
+
 
         driveThread = new Thread();
 
@@ -70,6 +74,7 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void teleopPeriodic() {
+
         double moveVal = -joystick.getY();
         double twistVal = joystick.getTwist();
         double throttleVal = -joystick.getThrottle();
@@ -91,7 +96,7 @@ public class Robot extends IterativeRobot {
             pidController.setSetpoint(gyro.getAngle());
             triggerPressed = true;
         }
-        if (joystick.getRawButton(4)){
+        if (joystick.getRawButton(4)||joystick.getRawButton(3)){
             pidController.enable();
         } else {
             pidController.disable();
