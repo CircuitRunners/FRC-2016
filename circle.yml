@@ -1,17 +1,8 @@
 ## Customize the test machine
 machine:
 
-  pre:
-    - sudo update-alternatives --set java /usr/lib/jvm/jdk1.8.0/bin/java
-    - sudo update-alternatives --set javac /usr/lib/jvm/java-8-openjdk-amd64/bin/javac
-    - echo 'export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64' >> ~/.circlerc
-
   timezone:
     America/New_York # Set the timezone
-
-  # Version of ruby to use
-  java:
-    version: openjdk8
 
   # Override /etc/hosts
 #  hosts:
