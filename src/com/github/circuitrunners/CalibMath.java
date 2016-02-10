@@ -113,6 +113,21 @@ public class CalibMath {
     }
 
     /**
+     * Adds a deadband but retains full range of values linearly. Breaks horribly if input goes above 1.
+     * @param input: value to deadband
+     * @param min: value at which >0 begins
+     * @return
+     */
+    public static double adjustedDeadband(double input, double min){
+        double output = 0;
+        double scale = 1 / (1 - min);
+        if(Math.abs(input) >= min){
+            output = Math.signum(input) * (Math.abs(input) - min) * scale;
+        }
+        return output;
+    }
+
+    /**
      * Finds the magnitude of input vector
      * @param input: double array of vector values
      * @return positive number
