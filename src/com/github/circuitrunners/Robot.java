@@ -118,6 +118,7 @@ public class Robot extends IterativeRobot {
         SmartDashboard.putNumber("pidError", pidController.getError());
         SmartDashboard.putNumber("pidValue", pidController.get());
 
-        motor.set(SmartDashboard.getNumber("derp",0));
+        //motor.set(SmartDashboard.getNumber("derp",0));
+        SmartDashboard.putNumber("derp",CalibMath.adjustedDeadband(joystick.getX(),0.3));
     }
 }
