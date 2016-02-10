@@ -114,6 +114,10 @@ public class CalibMath {
 
     /**
      * Adds a deadband but retains full range of values linearly. Breaks horribly if input goes above 1.
+     * turns this
+     * |--1--2--3--4--5--|
+     * into this
+     * ______|-1-2-3-4-5-|
      * @param input: value to deadband
      * @param min: value at which >0 begins
      * @return
