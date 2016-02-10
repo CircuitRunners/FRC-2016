@@ -19,4 +19,10 @@ public class CalibVision {
 
     note to self: include input for offsets of camera to shooter (angle, x y z)
     */
+
+    public double[] detectCircle(String imagesrc){
+        double[] array = new double[0]; //Placeholder until I figure out this shit
+        return array;
+    }
+
 }
