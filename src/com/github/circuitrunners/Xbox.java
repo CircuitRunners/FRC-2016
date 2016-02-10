@@ -38,6 +38,9 @@ public class Xbox extends Joystick {
         this.r3 = new JoystickButton(this.controller,10);
 
     }
+    public Xbox(){
+        this(0);
+    }
 
 
     public boolean getA(){
