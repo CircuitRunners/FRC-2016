@@ -1,0 +1,30 @@
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.github.circuitrunners</groupId>
+    <artifactId>Robot</artifactId>
+    <packaging>pom</packaging>
+    <version>0.0.1a</version>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.8</source>
+                    <target>1.8</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <modules>
+        <module>circuitlibrary</module>
+    </modules>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.github.circuitrunners</groupId>
+            <artifactId>CircuitLibrary</artifactId>
+            <version>0.0.1a</version>
+        </dependency>
+    </dependencies>
+</project>
