@@ -24,7 +24,8 @@
   <property file="${user.home}/wpilib/wpilib.properties"/>
   <property file="build.properties"/>
   <property file="${user.home}/wpilib/java/${version}/ant/build.properties"/>
-  
+  <property name="userLibs" value="CircuitLibrary/target/CircuitLibrary-0.0.1a.jar"/>
+
   <import file="${wpilib.ant.dir}/build.xml"/>
 
 </project> 
