@@ -52,6 +52,17 @@
                         <scope>system</scope>
                         <systemPath>${java.home}/../lib/tools.jar</systemPath>
                     </dependency>
+                    <!-- Include sshexec task -->
+                    <dependency>
+                        <groupId>org.apache.ant</groupId>
+                        <artifactId>ant-jsch</artifactId>
+                        <version>1.9.2</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.jcraft</groupId>
+                        <artifactId>jsch</artifactId>
+                        <version>0.1.50</version>
+                    </dependency>
                 </dependencies>
                 <executions>
                     <execution>
