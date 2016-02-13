@@ -1,4 +1,5 @@
 *.sh
+/target
 /build.xml
 /build.properties
 /wpilib
