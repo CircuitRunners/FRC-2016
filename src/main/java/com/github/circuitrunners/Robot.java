@@ -1,7 +1,7 @@
 
 package com.github.circuitrunners;
 
-import com.github.circuitrunners.calib.CalibMath;
+//import com.github.circuitrunners.calib.CalibMath;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -80,8 +80,8 @@ public class Robot extends IterativeRobot {
         double twistVal = joystick.getTwist();
         double throttleVal = -joystick.getThrottle();
 
-        double rotateVal = CalibMath.scalePower(twistVal, 0.1, 0.7, 2); //could make magic numbers into constants but who cares
-        double throttledMove = CalibMath.throttleMath(throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
+        double rotateVal = 0;//CalibMath.scalePower(twistVal, 0.1, 0.7, 2); //could make magic numbers into constants but who cares
+        double throttledMove = 0;//CalibMath.throttleMath(throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
         //there's no code in this line but who cares
         double gyroVal = gyro.getAngle();
         if (joystick.getRawButton(2)) gyro.reset();
@@ -120,6 +120,6 @@ public class Robot extends IterativeRobot {
         SmartDashboard.putNumber("pidValue", pidController.get());
 
         //motor.set(SmartDashboard.getNumber("derp",0));
-        SmartDashboard.putNumber("derp",CalibMath.adjustedDeadband(joystick.getX(),0.3));
+        SmartDashboard.putNumber("derp",/*CalibMath.adjustedDeadband(joystick.getX(),0.3)*/9);
     }
 }
