@@ -41,7 +41,7 @@
                 <executions>
                     <execution>
                         <id>ant</id>
-                        <phase>package</phase>
+                        <phase>install</phase>
                         <configuration>
                             <target>
                                 <ant antfile="build.xml" target="deploy" />
