@@ -1,10 +1,10 @@
 
 package com.github.circuitrunners;
 
+import com.akilib.SmartDashboard2;
 import com.analog.adis16448.frc.ADIS16448_IMU;
 import com.github.circuitrunners.calib.CalibMath;
 import edu.wpi.first.wpilibj.*;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class Robot extends IterativeRobot {
 
@@ -28,6 +28,16 @@ public class Robot extends IterativeRobot {
     
     private static final double THAT_SHIT_KP = 0;
     private static final double THAT_SHIT_KD = 0;
+    
+    // Buttons
+    private static final int BUTTON_GYRO_RESET = 9;
+    private static final int BUTTON_PID_ENABLE = 10;
+    
+    private static final int BUTTON_SHOOTER_WHEELSPIN_IN = 2;
+    private static final int BUTTON_SHOOTER_WHEELSPIN_OUT = 1;
+    private static final int BUTTON_SHOOTER_LIFT_UP = 5;
+    private static final int BUTTON_SHOOTER_LIFT_DOWN = 3;
+    private static final double OFFSET_SHOOTER = 0.17;
 
     private RobotDrive drive;
 
@@ -103,106 +113,145 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void teleopInit() {
-        SmartDashboard.putNumber("liftOffset", 0); //save "derp" to dictionary
 
-        SmartDashboard.putNumber("pid_kP", theOtherPIDController.getP());
-        SmartDashboard.putNumber("pid_kI", theOtherPIDController.getI());
-        SmartDashboard.putNumber("pid_kD", theOtherPIDController.getD());
-        theOtherPIDController.enable();
+        // PID Constants
+        SmartDashboard2.put("thisPID_kP", thisPIDController.getP());
+        SmartDashboard2.put("thisPID_kI", thisPIDController.getI());
+        SmartDashboard2.put("thisPID_kD", thisPIDController.getD());
+
+        SmartDashboard2.put("thatPID_kP", thatPIDController.getP());
+        SmartDashboard2.put("thatPID_kI", thatPIDController.getI());
+        SmartDashboard2.put("thatPID_kD", thatPIDController.getD());
+
+        SmartDashboard2.put("theOtherPID_kP", theOtherPIDController.getP());
+        SmartDashboard2.put("theOtherPID_kI", theOtherPIDController.getI());
+        SmartDashboard2.put("theOtherPID_kD", theOtherPIDController.getD());
+
+        // Just in case...
+        thisPIDController.disable();
+        thatPIDController.disable();
+        theOtherPIDController.disable();
+
+        // Shooter
+        SmartDashboard2.put("liftOffset", OFFSET_SHOOTER);
+        SmartDashboard2.put("kickerOffset", 0.3);
 
         weatherStatus = CalibMath.answerQuestion();
     }
 
-    boolean triggerPressed; //so lonely
+    boolean triggerPressed; //so lonely...
+    boolean flip = false; // not anymore
 
     @Override
     public void teleopPeriodic() {
 
+        // Drive values
         double moveVal = joystick.getY();
         double twistVal = joystick.getTwist();
         double throttleVal = -joystick.getThrottle();
 
-        double rotateVal = CalibMath.scalePower(twistVal, 0.05, 0.7, 2); //could make magic numbers into constants but who cares
+        double rotateVal = CalibMath.scalePower(twistVal, 0.1, 0.85, 2); //could make magic numbers into constants but who cares
         double throttledMove = CalibMath.throttleMath(throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
         //there's no code in this line but who cares
 
-        double thisShitDegrees = Math.toDegrees(thisShit.getYaw());
+        // Gyro values
+        double thisDegrees = thisShit.getAngle() - thisAdjustment;
+        double thatDegrees = thatShit.getAngle() - thatAdjustment;
+        double theOtherDegrees = theOtherShit.getAngle() - theOtherAdjustment;
 
-        double gyroVal = thisShitDegrees - thisAdjustment;
-
-        if (joystick.getRawButton(2)) {
-            thisAdjustment = thisShitDegrees;
+        // Gyro reset
+        if (joystick.getRawButton(BUTTON_GYRO_RESET)) {
+            thisAdjustment = thisDegrees;
             thatAdjustment = thatShit.getAngle();
             theOtherAdjustment = theOtherShit.getAngle();
         }
 
-        if (thatPIDController.isEnabled()){
-            if (Math.abs(rotateVal) > 0.2) {
-                thatPIDController.setSetpoint(theOtherShit.getAngle());
-                rotateVal += thatPIDController.get();
-            } else {
-                rotateVal = thatPIDController.get();
-            }
-        }
-        if (joystick.getRawButton(4) && !triggerPressed) {
-            thatPIDController.setSetpoint(theOtherShit.getAngle());
-            triggerPressed = true;
-        }
-        if (joystick.getRawButton(4)){
-            thatPIDController.enable();
-        } else {
-            thatPIDController.disable();
-            triggerPressed = false;
-        }
+        rotateVal += pidAdjust(thisPIDController, thisDegrees, rotateVal);
 
         drive.arcadeDrive(throttledMove, rotateVal);
 
-        if (joystick.getRawButton(3)) {
+        // Shooter Wheels
+        if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_IN)) {
             shooterWheelLeft.set(1);
             shooterWheelRight.set(-1);
-            Timer.delay(0.5);
             shooterKicker.set(-1);
-        } else if (joystick.getRawButton(1)) {
+        } else if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_OUT)) {
             shooterWheelLeft.set(-1);
             shooterWheelRight.set(1);
-            Timer.delay(0.5);
+            Timer.delay(0.5); // Spinning up...
             shooterKicker.set(1);
         } else {
             shooterWheelLeft.set(0);
             shooterWheelRight.set(0);
-            shooterKicker.set(-1);
+            shooterKicker.set(-SmartDashboard2.getNumber("kickerReturn", 0.3));
         }
 
-        if (joystick.getRawButton(11)) {
+        // Shooter Lift
+        if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
             shooterWheelLift.set(-1);
-        } else if (joystick.getRawButton(12)) {
+        } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
             shooterWheelLift.set(1);
         } else {
-            shooterWheelLift.set(SmartDashboard.getNumber("liftOffset"));
+            double offset = SmartDashboard2.getNumber("liftOffset", OFFSET_SHOOTER);
+            offset += flip ? 0 : 0.05;
+            shooterKicker.set(offset);
+            flip = !flip;
         }
 
-        SmartDashboard.putNumber("moveVal", moveVal);
-        SmartDashboard.putNumber("rotateVal", rotateVal);
-        SmartDashboard.putNumber("gyroVal", gyroVal);
+        // Debug
+        // Drive values
+        SmartDashboard2.put("moveVal", moveVal);
+        SmartDashboard2.put("rotateVal", rotateVal);
+        SmartDashboard2.put("derp", CalibMath.adjustedDeadband(joystick.getX(),0.3)); //save "derp" to dictionary
 
-        SmartDashboard.putBoolean("isPIDEnabled", thatPIDController.isEnabled());
-        SmartDashboard.putNumber("Setpoint", thatPIDController.getSetpoint());
-        double kP = SmartDashboard.getNumber("pid_kP");
-        double kI = SmartDashboard.getNumber("pid_kI");
-        double kD = SmartDashboard.getNumber("pid_kD");
-        thatPIDController.setPID(kP, kI, kD);
-        SmartDashboard.putNumber("pidValue", thatPIDController.get());
+        // Gyro values
+        SmartDashboard2.put("thisGyroVal", thisDegrees);
+        SmartDashboard2.put("thatGyroVal", thatDegrees);
+        SmartDashboard2.put("theOtherGyroVal", theOtherDegrees);
 
-        double temp = thisShit.getTemperature();
-
-        SmartDashboard.putNumber("derp", CalibMath.adjustedDeadband(joystick.getX(),0.3));
-        SmartDashboard.putNumber("Temperature", thisShit.getTemperature());
-        SmartDashboard.putNumber("Pressure", thisShit.getBarometricPressure());
-
-        double[] gyroArray = {thisShitDegrees-thisAdjustment, thatShit.getAngle()-thatAdjustment, theOtherShit.getAngle()-theOtherAdjustment};
+        double[] gyroArray = {thisDegrees-thisAdjustment,
+                thatShit.getAngle()-thatAdjustment,
+                theOtherShit.getAngle()-theOtherAdjustment};
         double gyroAverage = CalibMath.average(gyroArray);
-        SmartDashboard.putNumber("gyroAngle",CalibMath.gyroLimit(gyroAverage));
+        SmartDashboard2.put("gyroAngle",CalibMath.gyroLimit(gyroAverage));
 
-        SmartDashboard.putString("Will it rain?", weatherStatus);
+        // PID values
+        SmartDashboard2.put("isPIDEnabled", thatPIDController.isEnabled());
+        SmartDashboard2.put("setpoint", thatPIDController.getSetpoint());
+        double kP = SmartDashboard2.getNumber("theOtherPID_kP");
+        double kI = SmartDashboard2.getNumber("theOtherPID_kI");
+        double kD = SmartDashboard2.getNumber("theOtherPID_kD");
+        thatPIDController.setPID(kP, kI, kD);
+        SmartDashboard2.put("pidValue", thatPIDController.get());
+
+        //Weather
+        SmartDashboard2.put("Temperature", thisShit.getTemperature());
+        SmartDashboard2.put("Pressure", thisShit.getBarometricPressure());
+        SmartDashboard2.put("Will it rain?", weatherStatus);
+    }
+
+    private double pidAdjust(PIDController pidController, double setpoint, double rotateVal) {
+        // PID Enable/Disable
+        if (joystick.getRawButton(BUTTON_PID_ENABLE) && !triggerPressed) {
+            pidController.setSetpoint(setpoint);
+            triggerPressed = true;
+        }
+        if (joystick.getRawButton(BUTTON_PID_ENABLE)){
+            pidController.enable();
+        } else {
+            thisPIDController.disable();
+            triggerPressed = false;
+        }
+
+        // PID Control
+        if (thisPIDController.isEnabled()){
+            if (Math.abs(rotateVal) > 0.2) {
+                thisPIDController.setSetpoint(setpoint);
+                return rotateVal + thisPIDController.get();
+            } else {
+                return thisPIDController.get();
+            }
+        }
+        return 0;
     }
 }
