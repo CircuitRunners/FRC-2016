@@ -70,6 +70,8 @@ public class Robot extends IterativeRobot {
     private String weatherStatus;
 
     private double thisAdjustment;
+    private double thatAdjustment;
+    private double theOtherAdjustment;
 
     @Override
     public void robotInit() {
@@ -161,16 +163,23 @@ public class Robot extends IterativeRobot {
         //there's no code in this line but who cares
 
         // Gyro values
-        double thisDegrees = thisShit.getAngle() - thisAdjustment;
+        double thisRadians = thisShit.getAngle();
+        double thisDegrees = Math.toDegrees(thisRadians);
         double thatDegrees = thatShit.getAngle();
         double theOtherDegrees = theOtherShit.getAngle();
+        double thisAdjusted = thisDegrees - thisAdjustment;
+        double thatAdjusted = thatDegrees - thatAdjustment;
+        double theOtherAdjusted = theOtherDegrees - theOtherAdjustment;
 
         // Gyro reset
         if (joystick.getRawButton(BUTTON_GYRO_RESET)) {
-            thisAdjustment = thisShit.getAngle();
+            thisAdjustment += thisDegrees;
+            thatAdjustment += thatDegrees;
+            theOtherAdjustment += theOtherDegrees;
+
         }
 
-        rotateVal += pidAdjust(thisPIDController, thisDegrees, rotateVal);
+        rotateVal += pidAdjust(thisPIDController, thisRadians, rotateVal);
 
         drive.arcadeDrive(throttledMove, rotateVal);
 
@@ -201,6 +210,10 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Temperature", thisShit.getTemperature());
         SmartDashboard2.put("Pressure", thisShit.getBarometricPressure());
         SmartDashboard2.put("Will it rain?", weatherStatus);
+
+        //Smart Gyro™
+        double gyroAverage = CalibMath.average(thisAdjusted,thatAdjusted,theOtherAdjusted);
+        SmartDashboard2.put("SmartGyro",CalibMath.gyroLimit(gyroAverage));
     }
 
     private double pidAdjust(PIDController pidController, double setpoint, double rotateVal) {
