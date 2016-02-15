@@ -47,6 +47,8 @@ public class Robot extends IterativeRobot {
 
     public static final double KP_THE_OTHER_SHIT = 0.05;
     public static final double KD_THE_OTHER_SHIT = 0.1;
+    private static final double SPEED_SHOOTER_WHEEL_LEFT = 1;
+    private static final double SPEED_SHOOTER_WHEEL_RIGHT = 1;
 
 
     private RobotDrive drive;
@@ -96,7 +98,7 @@ public class Robot extends IterativeRobot {
         shooterWheelLift = new CANTalon(PORT_SHOOTER_LIFT);
 
         hall1 = new DigitalInput(0);
-        pot = new AnalogPotentiometer(1,5000);
+        pot = new AnalogPotentiometer(1,5000); // Range: 1950-4560
 
         joystick = new Joystick(0);
         
@@ -130,29 +132,10 @@ public class Robot extends IterativeRobot {
         // Reset adjustment
 //        thisAdjustment = thisShit.getAngle();
 
-        // PID Constants
-//        SmartDashboard2.put("thisPID_kP", thisPIDController.getP());
-//        SmartDashboard2.put("thisPID_kI", thisPIDController.getI());
-//        SmartDashboard2.put("thisPID_kD", thisPIDController.getD());
-
-        SmartDashboard2.put("thatPID_kP", thatPIDController.getP());
-        SmartDashboard2.put("thatPID_kI", thatPIDController.getI());
-        SmartDashboard2.put("thatPID_kD", thatPIDController.getD());
-
-        SmartDashboard2.put("theOtherPID_kP", theOtherPIDController.getP());
-        SmartDashboard2.put("theOtherPID_kI", theOtherPIDController.getI());
-        SmartDashboard2.put("theOtherPID_kD", theOtherPIDController.getD());
-
-        SmartDashboard2.put("Angle Coeff", angleCoeff);
-
         // Just in case...
 //        thisPIDController.disable();
         thatPIDController.disable();
         theOtherPIDController.disable();
-
-        // Shooter
-        SmartDashboard2.put("liftOffset", OFFSET_SHOOTER);
-        SmartDashboard2.put("kickerOffset", 0.3);
 
 
         weatherStatus = CalibMath.answerQuestion();
@@ -212,13 +195,8 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("theOtherGyroVal", theOtherDegrees);
 
         // PID values
-        SmartDashboard2.put("isPIDEnabled", thatPIDController.isEnabled());
-        SmartDashboard2.put("setpoint", thatPIDController.getSetpoint());
-        double kP = SmartDashboard2.getNumber("theOtherPID_kP");
-        double kI = SmartDashboard2.getNumber("theOtherPID_kI");
-        double kD = SmartDashboard2.getNumber("theOtherPID_kD");
-        thatPIDController.setPID(kP, kI, kD);
-        SmartDashboard2.put("pidValue", thatPIDController.get());
+        pidControl(thatPIDController, "that");
+        pidControl(theOtherPIDController, "theOther");
 
         //Weather
         SmartDashboard2.put("Temperature", thisShit.getTemperature());
@@ -260,33 +238,47 @@ public class Robot extends IterativeRobot {
     }
 
     public void liftShooter(double theta) {
+        double liftUpSpeed = SmartDashboard2.get("liftUpSpeed", SPEED_SHOOTER_LIFT_UP);
+        double liftDownSpeed = SmartDashboard2.get("liftDownSpeed", SPEED_SHOOTER_LIFT_DOWN);
         // Shooter Lift
         if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
-            shooterWheelLift.set(SPEED_SHOOTER_LIFT_UP);
+            shooterWheelLift.set(liftUpSpeed);
         } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
-            shooterWheelLift.set(SPEED_SHOOTER_LIFT_DOWN);
+            shooterWheelLift.set(liftDownSpeed);
         } else {
-            double offset = SmartDashboard2.getNumber("Angle Coeff", OFFSET_SHOOTER);
+            double offset = SmartDashboard2.get("Angle Coeff", OFFSET_SHOOTER);
             offset *= Math.cos(Math.toRadians(theta));
             shooterWheelLift.set(offset);
         }
     }
 
     public void shootAndIntake() {
+        double shooterLeftWheelSpeed = SmartDashboard2.get("leftWheelSpeed", SPEED_SHOOTER_WHEEL_LEFT);
+        double shooterRightWheelSpeed = SmartDashboard2.get("rightWheelSpeed", SPEED_SHOOTER_WHEEL_RIGHT);
         // Shooter Wheels
         if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_IN)) {
-            shooterWheelLeft.set(1);
-            shooterWheelRight.set(-1);
+            shooterWheelLeft.set(shooterLeftWheelSpeed);
+            shooterWheelRight.set(-shooterRightWheelSpeed);
             shooterKicker.set(-1);
         } else if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_OUT)) {
-            shooterWheelLeft.set(-1);
-            shooterWheelRight.set(1);
+            shooterWheelLeft.set(-shooterLeftWheelSpeed);
+            shooterWheelRight.set(shooterRightWheelSpeed);
             Timer.delay(0.5); // Spinning up...
             shooterKicker.set(1);
         } else {
             shooterWheelLeft.set(0);
             shooterWheelRight.set(0);
-            shooterKicker.set(-SmartDashboard2.getNumber("kickerReturn", 0.3));
+            shooterKicker.set(-SmartDashboard2.get("kickerReturn", 0.3));
         }
+    }
+    
+    private void pidControl(PIDController pidController, String name) {
+        SmartDashboard2.put("is" + name + "PIDEnabled", pidController.isEnabled());
+        SmartDashboard2.put(name + "Setpoint", pidController.getSetpoint());
+        double kP = SmartDashboard2.get(name + "PID_kP", pidController.getP());
+        double kI = SmartDashboard2.get(name + "PID_kI", pidController.getI());
+        double kD = SmartDashboard2.get(name + "PID_kD", pidController.getD());
+        pidController.setPID(kP, kI, kD);
+        SmartDashboard2.put(name + "PIDValue", pidController.get());
     }
 }
