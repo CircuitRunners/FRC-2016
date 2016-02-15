@@ -63,13 +63,13 @@ public class Robot extends IterativeRobot {
     private PIDController theOtherPIDController;
 
     private ADIS16448_IMU thisShit;
-    private PIDController thisPIDController;
+    //private PIDController thisPIDController;
     
     private ADXRS450_Gyro thatShit;
     private PIDController thatPIDController;
     private String weatherStatus;
 
-    private double thisAdjustment;
+    //private double thisAdjustment;
     private double thatAdjustment;
     private double theOtherAdjustment;
 
@@ -94,7 +94,7 @@ public class Robot extends IterativeRobot {
         
         thisShit = new ADIS16448_IMU();
         thisShit.calibrate();
-        thisPIDController = new PIDController(KP_THIS_SHIT, 0, KD_THIS_SHIT, thisShit, output -> {});
+//        thisPIDController = new PIDController(KP_THIS_SHIT, 0, KD_THIS_SHIT, thisShit, output -> {});
 
         thatShit = new ADXRS450_Gyro();
         thatShit.calibrate();
@@ -120,12 +120,12 @@ public class Robot extends IterativeRobot {
     public void teleopInit() {
 
         // Reset adjustment
-        thisAdjustment = thisShit.getAngle();
+//        thisAdjustment = thisShit.getAngle();
 
         // PID Constants
-        SmartDashboard2.put("thisPID_kP", thisPIDController.getP());
-        SmartDashboard2.put("thisPID_kI", thisPIDController.getI());
-        SmartDashboard2.put("thisPID_kD", thisPIDController.getD());
+//        SmartDashboard2.put("thisPID_kP", thisPIDController.getP());
+//        SmartDashboard2.put("thisPID_kI", thisPIDController.getI());
+//        SmartDashboard2.put("thisPID_kD", thisPIDController.getD());
 
         SmartDashboard2.put("thatPID_kP", thatPIDController.getP());
         SmartDashboard2.put("thatPID_kI", thatPIDController.getI());
@@ -136,7 +136,7 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("theOtherPID_kD", theOtherPIDController.getD());
 
         // Just in case...
-        thisPIDController.disable();
+//        thisPIDController.disable();
         thatPIDController.disable();
         theOtherPIDController.disable();
 
@@ -163,23 +163,23 @@ public class Robot extends IterativeRobot {
         //there's no code in this line but who cares
 
         // Gyro values
-        double thisRadians = thisShit.getAngle();
-        double thisDegrees = Math.toDegrees(thisRadians);
+//        double thisRadians = thisShit.getAngle();
+//        double thisDegrees = Math.toDegrees(thisRadians);
         double thatDegrees = thatShit.getAngle();
         double theOtherDegrees = theOtherShit.getAngle();
-        double thisAdjusted = thisDegrees - thisAdjustment;
+//        double thisAdjusted = thisDegrees - thisAdjustment;
         double thatAdjusted = thatDegrees - thatAdjustment;
         double theOtherAdjusted = theOtherDegrees - theOtherAdjustment;
 
         // Gyro reset
         if (joystick.getRawButton(BUTTON_GYRO_RESET)) {
-            thisAdjustment += thisDegrees;
+//            thisAdjustment += thisDegrees;
             thatAdjustment += thatDegrees;
             theOtherAdjustment += theOtherDegrees;
 
         }
 
-        rotateVal += pidAdjust(thisPIDController, thisRadians, rotateVal);
+        rotateVal += pidAdjust(thatPIDController, thatDegrees, rotateVal);
 
         drive.arcadeDrive(throttledMove, rotateVal);
 
@@ -193,7 +193,7 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("derp", CalibMath.adjustedDeadband(joystick.getX(),0.3)); //save "derp" to dictionary
 
         // Gyro values
-        SmartDashboard2.put("thisGyroVal", thisDegrees);
+//        SmartDashboard2.put("thisGyroVal", thisRadians);
         SmartDashboard2.put("thatGyroVal", thatDegrees);
         SmartDashboard2.put("theOtherGyroVal", theOtherDegrees);
 
@@ -212,8 +212,8 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Will it rain?", weatherStatus);
 
         //Smart Gyro™
-        double gyroAverage = CalibMath.average(thisAdjusted,thatAdjusted,theOtherAdjusted);
-        SmartDashboard2.put("SmartGyro",CalibMath.gyroLimit(gyroAverage));
+        double gyroAverage = CalibMath.average(CalibMath.gyroLimit(thatAdjusted),CalibMath.gyroLimit(theOtherAdjusted));
+        SmartDashboard2.put("SmartGyro",gyroAverage);
     }
 
     private double pidAdjust(PIDController pidController, double setpoint, double rotateVal) {
@@ -225,17 +225,17 @@ public class Robot extends IterativeRobot {
         if (joystick.getRawButton(BUTTON_PID_ENABLE)){
             pidController.enable();
         } else {
-            thisPIDController.disable();
+            pidController.disable();
             triggerPressed = false;
         }
 
         // PID Control
-        if (thisPIDController.isEnabled()){
+        if (pidController.isEnabled()){
             if (Math.abs(rotateVal) > JOYSTICK_DEADZONE_PID) {
-                thisPIDController.setSetpoint(setpoint);
-                return rotateVal + thisPIDController.get();
+                pidController.setSetpoint(setpoint);
+                return rotateVal + pidController.get();
             } else {
-                return thisPIDController.get();
+                return pidController.get();
             }
         }
         return 0;
