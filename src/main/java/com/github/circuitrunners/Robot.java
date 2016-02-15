@@ -34,8 +34,8 @@ public class Robot extends IterativeRobot {
     private static final int BUTTON_SHOOTER_LIFT_UP = 5;
     private static final int BUTTON_SHOOTER_LIFT_DOWN = 3;
     private static final double OFFSET_SHOOTER = 0.17;
-    private static final double SPEED_SHOOTER_LIFT_UP = -1;
-    private static final double SPEED_SHOOTER_LIFT_DOWN = 1;
+    private static final double SPEED_SHOOTER_LIFT_UP = -0.5;
+    private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
 
     //PID Constants
     
@@ -69,9 +69,14 @@ public class Robot extends IterativeRobot {
     private PIDController thatPIDController;
     private String weatherStatus;
 
+    private DigitalInput hall1;
+    private AnalogPotentiometer pot;
+
     //private double thisAdjustment;
     private double thatAdjustment;
     private double theOtherAdjustment;
+
+    private double angleCoeff = 0.17;
 
     @Override
     public void robotInit() {
@@ -89,6 +94,9 @@ public class Robot extends IterativeRobot {
         shooterWheelRight = new VictorSP(PORT_SHOOTER_RIGHT);
         shooterKicker = new Servo(PORT_SHOOTER_KICKER);
         shooterWheelLift = new CANTalon(PORT_SHOOTER_LIFT);
+
+        hall1 = new DigitalInput(0);
+        pot = new AnalogPotentiometer(1,5000);
 
         joystick = new Joystick(0);
         
@@ -135,6 +143,8 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("theOtherPID_kI", theOtherPIDController.getI());
         SmartDashboard2.put("theOtherPID_kD", theOtherPIDController.getD());
 
+        SmartDashboard2.put("Angle Coeff", angleCoeff);
+
         // Just in case...
 //        thisPIDController.disable();
         thatPIDController.disable();
@@ -143,6 +153,7 @@ public class Robot extends IterativeRobot {
         // Shooter
         SmartDashboard2.put("liftOffset", OFFSET_SHOOTER);
         SmartDashboard2.put("kickerOffset", 0.3);
+
 
         weatherStatus = CalibMath.answerQuestion();
     }
@@ -156,11 +167,11 @@ public class Robot extends IterativeRobot {
         // Drive values
         double moveVal = joystick.getY();
         double twistVal = joystick.getTwist();
-        double throttleVal = -joystick.getThrottle();
+        double throttleVal = CalibMath.throttleMath(-joystick.getThrottle());
 
         double rotateVal = CalibMath.scalePower(twistVal, JOYSTICK_DEADZONE, JOYSTICK_SCALE_FLAT, JOYSTICK_SCALE_POWER); //could make magic numbers into constants but who cares
-        double throttledMove = CalibMath.throttleMath(throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
-        //there's no code in this line but who cares
+        double throttledMove = (throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
+        double throttledRotate = CalibMath.inverseAdjustedDeadband(throttleVal,0.5) * rotateVal;//there's no code in this line but who cares
 
         // Gyro values
 //        double thisRadians = thisShit.getAngle();
@@ -178,19 +189,22 @@ public class Robot extends IterativeRobot {
             theOtherAdjustment += theOtherDegrees;
 
         }
+        double angle = (pot.get() - 1950) / 17.4;
 
-        rotateVal += pidAdjust(thatPIDController, thatDegrees, rotateVal);
+        throttledRotate += pidAdjust(thatPIDController, thatDegrees, rotateVal);
 
-        drive.arcadeDrive(throttledMove, rotateVal);
+        drive.arcadeDrive(throttledMove, throttledRotate);
 
-        liftShooter();
+        liftShooter(angle);
         shootAndIntake();
 
         // Debug
         // Drive values
         SmartDashboard2.put("moveVal", moveVal);
         SmartDashboard2.put("rotateVal", rotateVal);
+        SmartDashboard2.put("throttledRotate", throttledRotate);
         SmartDashboard2.put("derp", CalibMath.adjustedDeadband(joystick.getX(),0.3)); //save "derp" to dictionary
+        SmartDashboard2.put("angle", angle);
 
         // Gyro values
 //        SmartDashboard2.put("thisGyroVal", thisRadians);
@@ -214,6 +228,10 @@ public class Robot extends IterativeRobot {
         //Smart Gyro™
         double gyroAverage = CalibMath.average(CalibMath.gyroLimit(thatAdjusted),CalibMath.gyroLimit(theOtherAdjusted));
         SmartDashboard2.put("SmartGyro",gyroAverage);
+
+        SmartDashboard2.put("Hall",hall1);
+        SmartDashboard2.put("Pot", pot.get());
+
     }
 
     private double pidAdjust(PIDController pidController, double setpoint, double rotateVal) {
@@ -241,17 +259,16 @@ public class Robot extends IterativeRobot {
         return 0;
     }
 
-    public void liftShooter() {
+    public void liftShooter(double theta) {
         // Shooter Lift
         if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
             shooterWheelLift.set(SPEED_SHOOTER_LIFT_UP);
         } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
             shooterWheelLift.set(SPEED_SHOOTER_LIFT_DOWN);
         } else {
-            double offset = SmartDashboard2.getNumber("liftOffset", OFFSET_SHOOTER);
-            offset += flip ? 0 : 0.05;
-            shooterKicker.set(offset);
-            flip = !flip;
+            double offset = SmartDashboard2.getNumber("Angle Coeff", OFFSET_SHOOTER);
+            offset *= Math.cos(Math.toRadians(theta));
+            shooterWheelLift.set(offset);
         }
     }
 
