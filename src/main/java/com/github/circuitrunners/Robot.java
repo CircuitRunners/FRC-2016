@@ -19,6 +19,23 @@ public class Robot extends IterativeRobot {
     private static final int PORT_SHOOTER_KICKER = 6;
     private static final int PORT_SHOOTER_LIFT = 0;
 
+    // Drive Adjustments
+    private static final double JOYSTICK_DEADZONE = 0.1;
+    private static final double JOYSTICK_SCALE_FLAT = 0.85;
+    private static final double JOYSTICK_SCALE_POWER = 2;
+
+    // Buttons
+    private static final int BUTTON_GYRO_RESET = 9;
+    private static final int BUTTON_PID_ENABLE = 10;
+
+    private static final int BUTTON_SHOOTER_WHEELSPIN_IN = 2;
+    private static final int BUTTON_SHOOTER_WHEELSPIN_OUT = 1;
+    private static final int BUTTON_SHOOTER_LIFT_UP = 5;
+    private static final int BUTTON_SHOOTER_LIFT_DOWN = 3;
+    private static final double OFFSET_SHOOTER = 0.17;
+    private static final double SPEED_SHOOTER_LIFT_UP = -1;
+    private static final double SPEED_SHOOTER_LIFT_DOWN = 1;
+
     //PID Constants
     public static final double THE_OTHER_SHIT_KP = 0.05;
     public static final double THE_OTHER_SHIT_KD = 0.1;
@@ -28,18 +45,8 @@ public class Robot extends IterativeRobot {
     
     private static final double THAT_SHIT_KP = 0;
     private static final double THAT_SHIT_KD = 0;
-    
-    // Buttons
-    private static final int BUTTON_GYRO_RESET = 9;
-    private static final int BUTTON_PID_ENABLE = 10;
-    
-    private static final int BUTTON_SHOOTER_WHEELSPIN_IN = 2;
-    private static final int BUTTON_SHOOTER_WHEELSPIN_OUT = 1;
-    private static final int BUTTON_SHOOTER_LIFT_UP = 5;
-    private static final int BUTTON_SHOOTER_LIFT_DOWN = 3;
-    private static final double OFFSET_SHOOTER = 0.17;
-    private static final double SPEED_SHOOTER_LIFT_UP = -1;
-    private static final double SPEED_SHOOTER_LIFT_DOWN = 1;
+
+
 
     private RobotDrive drive;
 
@@ -62,8 +69,6 @@ public class Robot extends IterativeRobot {
     private String weatherStatus;
 
     private double thisAdjustment;
-    private double thatAdjustment;
-    private double theOtherAdjustment;
 
     @Override
     public void robotInit() {
@@ -111,6 +116,9 @@ public class Robot extends IterativeRobot {
     @Override
     public void teleopInit() {
 
+        // Reset adjustment
+        thisAdjustment = thisShit.getAngle();
+
         // PID Constants
         SmartDashboard2.put("thisPID_kP", thisPIDController.getP());
         SmartDashboard2.put("thisPID_kI", thisPIDController.getI());
@@ -147,20 +155,18 @@ public class Robot extends IterativeRobot {
         double twistVal = joystick.getTwist();
         double throttleVal = -joystick.getThrottle();
 
-        double rotateVal = CalibMath.scalePower(twistVal, 0.1, 0.85, 2); //could make magic numbers into constants but who cares
+        double rotateVal = CalibMath.scalePower(twistVal, JOYSTICK_DEADZONE, JOYSTICK_SCALE_FLAT, JOYSTICK_SCALE_POWER); //could make magic numbers into constants but who cares
         double throttledMove = CalibMath.throttleMath(throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
         //there's no code in this line but who cares
 
         // Gyro values
         double thisDegrees = thisShit.getAngle() - thisAdjustment;
-        double thatDegrees = thatShit.getAngle() - thatAdjustment;
-        double theOtherDegrees = theOtherShit.getAngle() - theOtherAdjustment;
+        double thatDegrees = thatShit.getAngle();
+        double theOtherDegrees = theOtherShit.getAngle();
 
         // Gyro reset
         if (joystick.getRawButton(BUTTON_GYRO_RESET)) {
-            thisAdjustment = thisDegrees;
-            thatAdjustment = thatShit.getAngle();
-            theOtherAdjustment = theOtherShit.getAngle();
+            thisAdjustment = thisShit.getAngle();
         }
 
         rotateVal += pidAdjust(thisPIDController, thisDegrees, rotateVal);
@@ -180,12 +186,6 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("thisGyroVal", thisDegrees);
         SmartDashboard2.put("thatGyroVal", thatDegrees);
         SmartDashboard2.put("theOtherGyroVal", theOtherDegrees);
-
-        double[] gyroArray = {thisDegrees-thisAdjustment,
-                thatShit.getAngle()-thatAdjustment,
-                theOtherShit.getAngle()-theOtherAdjustment};
-        double gyroAverage = CalibMath.average(gyroArray);
-        SmartDashboard2.put("gyroAngle",CalibMath.gyroLimit(gyroAverage));
 
         // PID values
         SmartDashboard2.put("isPIDEnabled", thatPIDController.isEnabled());
