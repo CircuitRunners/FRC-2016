@@ -23,6 +23,7 @@ public class Robot extends IterativeRobot {
     private static final double JOYSTICK_DEADZONE = 0.1;
     private static final double JOYSTICK_SCALE_FLAT = 0.85;
     private static final double JOYSTICK_SCALE_POWER = 2;
+    private static final double JOYSTICK_DEADZONE_PID = 0.2;
 
     // Buttons
     private static final int BUTTON_GYRO_RESET = 9;
@@ -37,15 +38,15 @@ public class Robot extends IterativeRobot {
     private static final double SPEED_SHOOTER_LIFT_DOWN = 1;
 
     //PID Constants
-    public static final double THE_OTHER_SHIT_KP = 0.05;
-    public static final double THE_OTHER_SHIT_KD = 0.1;
     
-    private static final double THIS_SHIT_KP = 0;
-    private static final double THIS_SHIT_KD = 0;
+    private static final double KP_THIS_SHIT = 0;
+    private static final double KD_THIS_SHIT = 0;
     
-    private static final double THAT_SHIT_KP = 0;
-    private static final double THAT_SHIT_KD = 0;
+    private static final double KP_THAT_SHIT = 0;
+    private static final double KD_THAT_SHIT = 0;
 
+    public static final double KP_THE_OTHER_SHIT = 0.05;
+    public static final double KD_THE_OTHER_SHIT = 0.1;
 
 
     private RobotDrive drive;
@@ -91,15 +92,15 @@ public class Robot extends IterativeRobot {
         
         thisShit = new ADIS16448_IMU();
         thisShit.calibrate();
-        thisPIDController = new PIDController(THIS_SHIT_KP, 0, THIS_SHIT_KD, thisShit, output -> {});
+        thisPIDController = new PIDController(KP_THIS_SHIT, 0, KD_THIS_SHIT, thisShit, output -> {});
 
         thatShit = new ADXRS450_Gyro();
         thatShit.calibrate();
-        thatPIDController = new PIDController(THAT_SHIT_KP, 0, THAT_SHIT_KD, thatShit, output -> {});
+        thatPIDController = new PIDController(KP_THAT_SHIT, 0, KD_THAT_SHIT, thatShit, output -> {});
 
         theOtherShit = new AnalogGyro(0);
         theOtherShit.calibrate();
-        theOtherPIDController = new PIDController(THE_OTHER_SHIT_KP, 0, THE_OTHER_SHIT_KD, theOtherShit, output -> {});
+        theOtherPIDController = new PIDController(KP_THE_OTHER_SHIT, 0, KD_THE_OTHER_SHIT, theOtherShit, output -> {});
 
     }
 
@@ -217,7 +218,7 @@ public class Robot extends IterativeRobot {
 
         // PID Control
         if (thisPIDController.isEnabled()){
-            if (Math.abs(rotateVal) > 0.2) {
+            if (Math.abs(rotateVal) > JOYSTICK_DEADZONE_PID) {
                 thisPIDController.setSetpoint(setpoint);
                 return rotateVal + thisPIDController.get();
             } else {
