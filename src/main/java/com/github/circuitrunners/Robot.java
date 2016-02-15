@@ -38,13 +38,10 @@ public class Robot extends IterativeRobot {
     private static final int BUTTON_SHOOTER_LIFT_UP = 5;
     private static final int BUTTON_SHOOTER_LIFT_DOWN = 3;
     private static final double OFFSET_SHOOTER = 0.17;
+    private static final double SPEED_SHOOTER_LIFT_UP = -1;
+    private static final double SPEED_SHOOTER_LIFT_DOWN = 1;
 
     private RobotDrive drive;
-
-    private VictorSP frontLeft;
-    private VictorSP frontRight;
-    private VictorSP rearLeft;
-    private VictorSP rearRight;
 
     private VictorSP shooterWheelLeft;
     private VictorSP shooterWheelRight;
@@ -71,10 +68,10 @@ public class Robot extends IterativeRobot {
     @Override
     public void robotInit() {
 
-        frontLeft = new VictorSP(PORT_DRIVE_FRONT_LEFT);
-        rearLeft = new VictorSP(PORT_DRIVE_REAR_LEFT);
-        frontRight = new VictorSP(PORT_DRIVE_FRONT_RIGHT);
-        rearRight = new VictorSP(PORT_DRIVE_REAR_RIGHT);
+        VictorSP frontLeft = new VictorSP(PORT_DRIVE_FRONT_LEFT);
+        VictorSP rearLeft = new VictorSP(PORT_DRIVE_REAR_LEFT);
+        VictorSP frontRight = new VictorSP(PORT_DRIVE_FRONT_RIGHT);
+        VictorSP rearRight = new VictorSP(PORT_DRIVE_REAR_RIGHT);
 
         drive = new RobotDrive(frontLeft, rearLeft, frontRight, rearRight);
 
@@ -170,33 +167,8 @@ public class Robot extends IterativeRobot {
 
         drive.arcadeDrive(throttledMove, rotateVal);
 
-        // Shooter Wheels
-        if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_IN)) {
-            shooterWheelLeft.set(1);
-            shooterWheelRight.set(-1);
-            shooterKicker.set(-1);
-        } else if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_OUT)) {
-            shooterWheelLeft.set(-1);
-            shooterWheelRight.set(1);
-            Timer.delay(0.5); // Spinning up...
-            shooterKicker.set(1);
-        } else {
-            shooterWheelLeft.set(0);
-            shooterWheelRight.set(0);
-            shooterKicker.set(-SmartDashboard2.getNumber("kickerReturn", 0.3));
-        }
-
-        // Shooter Lift
-        if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
-            shooterWheelLift.set(-1);
-        } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
-            shooterWheelLift.set(1);
-        } else {
-            double offset = SmartDashboard2.getNumber("liftOffset", OFFSET_SHOOTER);
-            offset += flip ? 0 : 0.05;
-            shooterKicker.set(offset);
-            flip = !flip;
-        }
+        liftShooter();
+        shootAndIntake();
 
         // Debug
         // Drive values
@@ -253,5 +225,37 @@ public class Robot extends IterativeRobot {
             }
         }
         return 0;
+    }
+
+    public void liftShooter() {
+        // Shooter Lift
+        if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
+            shooterWheelLift.set(SPEED_SHOOTER_LIFT_UP);
+        } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
+            shooterWheelLift.set(SPEED_SHOOTER_LIFT_DOWN);
+        } else {
+            double offset = SmartDashboard2.getNumber("liftOffset", OFFSET_SHOOTER);
+            offset += flip ? 0 : 0.05;
+            shooterKicker.set(offset);
+            flip = !flip;
+        }
+    }
+
+    public void shootAndIntake() {
+        // Shooter Wheels
+        if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_IN)) {
+            shooterWheelLeft.set(1);
+            shooterWheelRight.set(-1);
+            shooterKicker.set(-1);
+        } else if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_OUT)) {
+            shooterWheelLeft.set(-1);
+            shooterWheelRight.set(1);
+            Timer.delay(0.5); // Spinning up...
+            shooterKicker.set(1);
+        } else {
+            shooterWheelLeft.set(0);
+            shooterWheelRight.set(0);
+            shooterKicker.set(-SmartDashboard2.getNumber("kickerReturn", 0.3));
+        }
     }
 }
