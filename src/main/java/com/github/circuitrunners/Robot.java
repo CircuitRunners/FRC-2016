@@ -244,7 +244,7 @@ public class Robot extends IterativeRobot {
         if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
             shooterWheelLift.set(liftUpSpeed);
         } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
-            shooterWheelLift.set(liftDownSpeed);
+            shooterWheelLift.set(-liftDownSpeed);
         } else {
             double offset = SmartDashboard2.get("Angle Coeff", OFFSET_SHOOTER);
             offset *= Math.cos(Math.toRadians(theta));
