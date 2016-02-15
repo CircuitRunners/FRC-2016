@@ -25,14 +25,19 @@ public class Robot extends IterativeRobot {
     private static final double JOYSTICK_SCALE_POWER = 2;
     private static final double JOYSTICK_DEADZONE_PID = 0.2;
 
-    // Buttons
-    private static final int BUTTON_GYRO_RESET = 9;
-    private static final int BUTTON_PID_ENABLE = 10;
+    // Axes
+    private static int AXIS_MOVE = 1;
+    private static int AXIS_ROTATE = 2;
+    private static int AXIS_THROTTLE = 3;
 
-    private static final int BUTTON_SHOOTER_WHEELSPIN_IN = 2;
-    private static final int BUTTON_SHOOTER_WHEELSPIN_OUT = 1;
-    private static final int BUTTON_SHOOTER_LIFT_UP = 5;
-    private static final int BUTTON_SHOOTER_LIFT_DOWN = 3;
+    // Buttons
+    private static int BUTTON_GYRO_RESET = 9;
+    private static int BUTTON_PID_ENABLE = 10;
+
+    private static int BUTTON_SHOOTER_WHEELSPIN_IN = 2;
+    private static int BUTTON_SHOOTER_WHEELSPIN_OUT = 1;
+    private static int BUTTON_SHOOTER_LIFT_UP = 5;
+    private static int BUTTON_SHOOTER_LIFT_DOWN = 3;
     private static final double OFFSET_SHOOTER = 0.17;
     private static final double SPEED_SHOOTER_LIFT_UP = -0.5;
     private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
@@ -139,6 +144,20 @@ public class Robot extends IterativeRobot {
 
 
         weatherStatus = CalibMath.answerQuestion();
+
+        // Drive Controls
+        if (SmartDashboard2.get("isXbox", false)) {
+            AXIS_MOVE = 1;
+            AXIS_ROTATE = 4;
+
+            BUTTON_GYRO_RESET = 6;
+            BUTTON_PID_ENABLE = 7;
+
+            BUTTON_SHOOTER_LIFT_DOWN = 1;
+            BUTTON_SHOOTER_LIFT_UP = 2;
+            BUTTON_SHOOTER_WHEELSPIN_OUT = 6;
+            BUTTON_SHOOTER_WHEELSPIN_IN = 5;
+        }
     }
 
     boolean triggerPressed; //so lonely...
@@ -148,9 +167,13 @@ public class Robot extends IterativeRobot {
     public void teleopPeriodic() {
 
         // Drive values
-        double moveVal = joystick.getY();
-        double twistVal = joystick.getTwist();
-        double throttleVal = CalibMath.throttleMath(-joystick.getThrottle());
+        double moveVal = joystick.getRawAxis(AXIS_MOVE);
+        double twistVal = joystick.getRawAxis(AXIS_ROTATE);
+        double throttleVal = CalibMath.throttleMath(-joystick.getRawAxis(AXIS_THROTTLE));
+
+        if (SmartDashboard2.get("isXbox", false)) {
+            throttleVal = 0;
+        }
 
         double rotateVal = CalibMath.scalePower(twistVal, JOYSTICK_DEADZONE, JOYSTICK_SCALE_FLAT, JOYSTICK_SCALE_POWER); //could make magic numbers into constants but who cares
         double throttledMove = (throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
