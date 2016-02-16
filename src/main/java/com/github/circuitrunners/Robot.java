@@ -241,9 +241,9 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Hall",hall1);
         SmartDashboard2.put("Pot", pot.get());
 
-        SmartDashboard2.get("kp_pot", KP_POT);
-        SmartDashboard2.get("ki_pot", KI_POT);
-        SmartDashboard2.get("kd_pot", KD_POT);
+        KP_POT = SmartDashboard2.get("kp_pot", KP_POT);
+        KI_POT = SmartDashboard2.get("ki_pot", KI_POT);
+        KD_POT = SmartDashboard2.get("kd_pot", KD_POT);
         potPID.setPID(KP_POT,KI_POT,KD_POT);
 
     }
