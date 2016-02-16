@@ -278,14 +278,15 @@ public class Robot extends IterativeRobot {
         double liftDownSpeed = SmartDashboard2.get("liftDownSpeed", SPEED_SHOOTER_LIFT_DOWN);
         // Shooter Lift
         if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
-            targetAngle ++;
+            SmartDashboard2.put("targetAngle", ++targetAngle);
         } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
-            targetAngle --;
-        } else {
+            SmartDashboard2.put("targetAngle", --targetAngle);
         }
+        targetAngle = SmartDashboard2.get("targetAngle", targetAngle);
         double setpoint = targetAngle * 17.4 + 1950;
         potPID.setSetpoint(setpoint);
         SmartDashboard2.put("targetAngle", targetAngle);
+        System.out.println(targetAngle);
     }
 
     public void shootAndIntake() {
