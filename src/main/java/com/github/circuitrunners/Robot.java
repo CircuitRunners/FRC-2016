@@ -25,6 +25,8 @@ public class Robot extends IterativeRobot {
     private static final double JOYSTICK_SCALE_POWER = 2;
     private static final double JOYSTICK_DEADZONE_PID = 0.2;
 
+
+
     // Axes
     private static int AXIS_MOVE = 1;
     private static int AXIS_ROTATE = 2;
@@ -43,7 +45,10 @@ public class Robot extends IterativeRobot {
     private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
 
     //PID Constants
-    
+    private double KP_POT = 0;
+    private double KI_POT = 0;
+    private double KD_POT = 0;
+
     private static final double KP_THIS_SHIT = 0;
     private static final double KD_THIS_SHIT = 0;
     
@@ -84,6 +89,8 @@ public class Robot extends IterativeRobot {
     private double theOtherAdjustment;
 
     private double angleCoeff = 0.17;
+    private double targetAngle = 0;
+    private PIDController potPID;
 
     @Override
     public void robotInit() {
@@ -104,6 +111,7 @@ public class Robot extends IterativeRobot {
 
         hall1 = new DigitalInput(0);
         pot = new AnalogPotentiometer(1,5000); // Range: 1950-4560
+        potPID = new PIDController(KP_POT, KI_POT, KD_POT, pot, shooterWheelLift);
 
         joystick = new Joystick(0);
         
@@ -142,6 +150,7 @@ public class Robot extends IterativeRobot {
         thatPIDController.disable();
         theOtherPIDController.disable();
 
+        potPID.enable();
 
         weatherStatus = CalibMath.answerQuestion();
 
@@ -200,7 +209,7 @@ public class Robot extends IterativeRobot {
 
         drive.arcadeDrive(throttledMove, throttledRotate);
 
-        liftShooter(angle);
+        liftShooter();
         shootAndIntake();
 
         // Debug
@@ -232,6 +241,11 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Hall",hall1);
         SmartDashboard2.put("Pot", pot.get());
 
+        SmartDashboard2.get("kp_pot", KP_POT);
+        SmartDashboard2.get("ki_pot", KI_POT);
+        SmartDashboard2.get("kd_pot", KD_POT);
+        potPID.setPID(KP_POT,KI_POT,KD_POT);
+
     }
 
     private double pidAdjust(PIDController pidController, double setpoint, double rotateVal) {
@@ -259,19 +273,19 @@ public class Robot extends IterativeRobot {
         return 0;
     }
 
-    public void liftShooter(double theta) {
+    public void liftShooter() {
         double liftUpSpeed = SmartDashboard2.get("liftUpSpeed", SPEED_SHOOTER_LIFT_UP);
         double liftDownSpeed = SmartDashboard2.get("liftDownSpeed", SPEED_SHOOTER_LIFT_DOWN);
         // Shooter Lift
         if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
-            shooterWheelLift.set(liftUpSpeed);
+            targetAngle ++;
         } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
-            shooterWheelLift.set(-liftDownSpeed);
+            targetAngle --;
         } else {
-            double offset = SmartDashboard2.get("Angle Coeff", OFFSET_SHOOTER);
-            offset *= Math.cos(Math.toRadians(theta));
-            shooterWheelLift.set(offset);
         }
+        double setpoint = targetAngle * 17.4 + 1950;
+        potPID.setSetpoint(setpoint);
+        SmartDashboard2.put("targetAngle", targetAngle);
     }
 
     public void shootAndIntake() {
