@@ -160,8 +160,7 @@ public class Robot extends IterativeRobot {
         }
     }
 
-    boolean triggerPressed; //so lonely...
-    boolean flip = false; // not anymore
+    boolean triggerPressed; //so lonely
 
     @Override
     public void teleopPeriodic() {
