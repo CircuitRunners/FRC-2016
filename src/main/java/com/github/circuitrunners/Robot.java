@@ -89,7 +89,7 @@ public class Robot extends IterativeRobot {
     private double theOtherAdjustment;
 
     private double angleCoeff = 0.17;
-    private double targetAngle = 0;
+    private double targetAngle = 60;
     private PIDController potPID;
 
     @Override
@@ -284,7 +284,6 @@ public class Robot extends IterativeRobot {
         double setpoint = targetAngle * 17.4 + 1950;
         potPID.setSetpoint(setpoint);
         SmartDashboard2.put("targetAngle", targetAngle);
-        System.out.println(targetAngle);
     }
 
     public void shootAndIntake() {
