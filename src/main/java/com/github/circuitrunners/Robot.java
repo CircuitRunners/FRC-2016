@@ -45,9 +45,9 @@ public class Robot extends IterativeRobot {
     private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
 
     //PID Constants
-    private double KP_POT = 0;
-    private double KI_POT = 0;
-    private double KD_POT = 0;
+    private static final double KP_POT = 0;
+    private static final double KI_POT = 0;
+    private static final double KD_POT = 0;
 
     private static final double KP_THIS_SHIT = 0;
     private static final double KD_THIS_SHIT = 0;
@@ -241,10 +241,10 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Hall",hall1);
         SmartDashboard2.put("Pot", pot.get());
 
-        KP_POT = SmartDashboard2.get("kp_pot", KP_POT);
-        KI_POT = SmartDashboard2.get("ki_pot", KI_POT);
-        KD_POT = SmartDashboard2.get("kd_pot", KD_POT);
-        potPID.setPID(KP_POT,KI_POT,KD_POT);
+        double pot_kP = SmartDashboard2.get("kp_pot", KD_POT);
+        double pot_kI = SmartDashboard2.get("ki_pot", KI_POT);
+        double pot_kD = SmartDashboard2.get("kd_pot", KD_POT);
+        potPID.setPID(pot_kP, pot_kI, pot_kD);
 
     }
 
