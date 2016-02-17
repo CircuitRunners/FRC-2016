@@ -174,56 +174,14 @@ public class Robot extends IterativeRobot {
     @Override
     public void teleopPeriodic() {
 
-        // Drive values
-        double moveVal = joystick.getRawAxis(AXIS_MOVE);
-        double twistVal = joystick.getRawAxis(AXIS_ROTATE);
-        double throttleVal = CalibMath.throttleMath(-joystick.getRawAxis(AXIS_THROTTLE));
-
-        if (SmartDashboard2.get("isXbox", false)) {
-            throttleVal = 0;
-        }
-
-        double rotateVal = CalibMath.scalePower(twistVal, JOYSTICK_DEADZONE, JOYSTICK_SCALE_FLAT, JOYSTICK_SCALE_POWER); //could make magic numbers into constants but who cares
-        double throttledMove = (throttleVal) * moveVal; //0% chance we need this elsewhere but who cares
-        double throttledRotate = CalibMath.inverseAdjustedDeadband(throttleVal,0.5) * rotateVal;//there's no code in this line but who cares
-
-        // Gyro values
-//        double thisRadians = thisShit.getAngle();
-//        double thisDegrees = Math.toDegrees(thisRadians);
-        double thatDegrees = thatShit.getAngle();
-        double theOtherDegrees = theOtherShit.getAngle();
-//        double thisAdjusted = thisDegrees - thisAdjustment;
-        double thatAdjusted = thatDegrees - thatAdjustment;
-        double theOtherAdjusted = theOtherDegrees - theOtherAdjustment;
-
-        // Gyro reset
-        if (joystick.getRawButton(BUTTON_GYRO_RESET)) {
-//            thisAdjustment += thisDegrees;
-            thatAdjustment += thatDegrees;
-            theOtherAdjustment += theOtherDegrees;
-
-        }
-        double angle = (pot.get() - 1950) / 17.4;
-
-        throttledRotate += pidAdjust(thatPIDController, thatDegrees, rotateVal);
-
-        drive.arcadeDrive(throttledMove, throttledRotate);
-
+        double angle = SmartDashboard2.put("angle", (pot.get() - 1950) / 17.4);
         liftShooter();
         shootAndIntake();
 
         // Debug
         // Drive values
-        SmartDashboard2.put("moveVal", moveVal);
-        SmartDashboard2.put("rotateVal", rotateVal);
-        SmartDashboard2.put("throttledRotate", throttledRotate);
         SmartDashboard2.put("derp", CalibMath.adjustedDeadband(joystick.getX(),0.3)); //save "derp" to dictionary
         SmartDashboard2.put("angle", angle);
-
-        // Gyro values
-//        SmartDashboard2.put("thisGyroVal", thisRadians);
-        SmartDashboard2.put("thatGyroVal", thatDegrees);
-        SmartDashboard2.put("theOtherGyroVal", theOtherDegrees);
 
         // PID values
         pidControl(thatPIDController, "that");
@@ -234,10 +192,6 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Pressure", thisShit.getBarometricPressure());
         SmartDashboard2.put("Will it rain?", weatherStatus);
 
-        //Smart Gyro™
-        double gyroAverage = CalibMath.average(CalibMath.gyroLimit(thatAdjusted),CalibMath.gyroLimit(theOtherAdjusted));
-        SmartDashboard2.put("SmartGyro",gyroAverage);
-
         SmartDashboard2.put("Hall",hall1);
         SmartDashboard2.put("Pot", pot.get());
 
@@ -246,6 +200,50 @@ public class Robot extends IterativeRobot {
         double pot_kD = SmartDashboard2.get("kd_pot", KD_POT);
         potPID.setPID(pot_kP, pot_kI, pot_kD);
 
+    }
+
+    private void drive() {
+        // Drive values
+        double moveVal = SmartDashboard2.put("moveVal", joystick.getRawAxis(AXIS_MOVE));
+        double twistVal = SmartDashboard2.put("twistVal", joystick.getRawAxis(AXIS_ROTATE));
+        double throttleVal = SmartDashboard2.put("throttleVal",
+                                                 CalibMath.throttleMath(-joystick.getRawAxis(AXIS_THROTTLE)));
+
+        if (SmartDashboard2.get("isXbox", false)) throttleVal = 1;
+
+        double rotateVal = SmartDashboard2.put("rotateVal", CalibMath.scalePower(twistVal,
+                                                                                 SmartDashboard2.get("joystickDeadzone", JOYSTICK_DEADZONE),
+                                                                                 SmartDashboard2.get("joystickScaleFlat", JOYSTICK_SCALE_FLAT),
+                                                                                 SmartDashboard2.get("joystickScalePower", JOYSTICK_SCALE_POWER))); //could make magic numbers into constants but who cares
+        double throttledMove = SmartDashboard2.put("throttledMove", (throttleVal) * moveVal); //0% chance we need this elsewhere but who cares
+        //there's no code in this line but who cares
+
+        // Gyro values
+//        double thisRadians = thisShit.getAngle();
+//        double thisDegrees = Math.toDegrees(thisRadians);
+        double thatDegrees = SmartDashboard2.put("thatDegrees", thatShit.getAngle());
+        double theOtherDegrees = SmartDashboard2.put("theOtherDegrees", theOtherShit.getAngle());
+//        double thisAdjusted = thisDegrees - thisAdjustment;
+        double thatAdjusted = SmartDashboard2.put("thatAdjusted", thatDegrees - thatAdjustment);
+        double theOtherAdjusted = SmartDashboard2.put("theOtherAdjusted", theOtherDegrees - theOtherAdjustment);
+
+        // Gyro reset
+        if (joystick.getRawButton(BUTTON_GYRO_RESET)) {
+//            thisAdjustment += thisDegrees;
+            thatAdjustment += thatDegrees;
+            theOtherAdjustment += theOtherDegrees;
+
+        }
+
+        //Smart Gyro™
+        SmartDashboard2.put("SmartGyro", CalibMath.average(CalibMath.gyroLimit(thatAdjusted),
+                                                           CalibMath.gyroLimit(theOtherAdjusted)));
+
+        double throttledRotate = SmartDashboard2.put("throttledRotate",
+                                                     CalibMath.inverseAdjustedDeadband(throttleVal,0.5) * rotateVal
+                                                     + pidAdjust(thatPIDController, thatDegrees, rotateVal));
+
+        drive.arcadeDrive(throttledMove, throttledRotate);
     }
 
     private double pidAdjust(PIDController pidController, double setpoint, double rotateVal) {
@@ -270,7 +268,7 @@ public class Robot extends IterativeRobot {
                 return pidController.get();
             }
         }
-        return 0;
+        return rotateVal;
     }
 
     public void liftShooter() {
