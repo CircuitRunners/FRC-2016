@@ -1,6 +1,6 @@
 /target
 /wpilib
-/frc_2016_stronghold.iml
+*.iml
 *.sh
 /build.xml
 /build.properties
