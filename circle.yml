@@ -10,8 +10,3 @@ checkout:
   post:
     - git submodule sync
     - git submodule update --init # use submodules
-
-## Customize test commands
-test:
-  override:
-    - ant -f circle_build.xml deploy
