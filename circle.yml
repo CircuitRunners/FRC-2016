@@ -1,52 +1,17 @@
 ## Customize the test machine
 machine:
-
   timezone:
     America/New_York # Set the timezone
-
-  # Version of java to use
   java:
     version: oraclejdk8
-
-  # Override /etc/hosts
-#  hosts:
-#    circlehost: 127.0.0.1
-#    dev.mycompany.com: 127.0.0.1
-
-  # Add some environment variables
-  environment:
-    WPILIB: wpilib
 
 ## Customize checkout
 checkout:
   post:
-#    - git submodule sync
-#    - git submodule update --init # use submodules
-    # Check if files exist
-#    - if [ ! -d "$WPILIB" ]; then echo "WPILib does not exist!";
-
-## Customize dependencies
-dependencies:
-  # we automatically cache and restore many dependencies between
-  # builds. If you need to, you can add custom paths to cache:
-  cache_directories:
-    - "circleci" # circleci testing
+    - git submodule sync
+    - git submodule update --init # use submodules
 
 ## Customize test commands
 test:
   override:
     - ant -f circle_build.xml deploy
-#  post:
-
-## Customize deployment commands
-#deployment:
-#  staging:
-#    branch: master
-#    heroku:
-#      appname: foo-bar-123
-
-## Custom notifications
-#notify:
-#  webhooks:
-    # A list of hashes representing hooks. Only the url field is supported.
-#    - url: https://someurl.com/hooks/circle

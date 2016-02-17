@@ -1,9 +1,11 @@
-*.sh
 /target
+/wpilib
+/frc_2016_stronghold.iml
+*.sh
 /build.xml
 /build.properties
-/wpilib
 /build
+/sysProps.xml
 /dist
 /.idea
 *.class

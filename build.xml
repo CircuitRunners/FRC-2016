@@ -20,11 +20,20 @@
   <!-- <property name="target" value=""/> -->
 
   <!-- Any other property in build.properties can also be overridden. -->
+<<<<<<< HEAD
   
   <property file="wpilib/wpilib.properties"/>
   <property file="build.properties"/>
   <property file="wpilib/java/${version}/ant/build.properties"/>
   
+=======
+
+  <property file="${user.home}/wpilib/wpilib.properties"/>
+  <property file="build.properties"/>
+  <property file="${user.home}/wpilib/java/${version}/ant/build.properties"/>
+  <property name="userLibs" value="${user.home}/.m2/repository/com/github/circuitrunners/CircuitLibrary/0.0.1a/CircuitLibrary-0.0.1a.jar"/>
+
+>>>>>>> origin/hans
   <import file="${wpilib.ant.dir}/build.xml"/>
 
 </project> 
