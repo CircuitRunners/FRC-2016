@@ -51,6 +51,18 @@
                             <goal>run</goal>
                         </goals>
                     </execution>
+                    <execution>
+                        <id>complete-clean</id>
+                        <phase>clean</phase>
+                        <configuration>
+                            <target>
+                                <ant antfile="build.xml" target="clean" />
+                            </target>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
                 </executions>
             </plugin>
         </plugins>
