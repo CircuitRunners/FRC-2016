@@ -5,6 +5,7 @@ import com.akilib.SmartDashboard2;
 import com.analog.adis16448.frc.ADIS16448_IMU;
 import com.github.circuitrunners.calib.CalibMath;
 import edu.wpi.first.wpilibj.*;
+import edu.wpi.first.wpilibj.networktables.NetworkTable;
 
 public class Robot extends IterativeRobot {
 
@@ -16,16 +17,16 @@ public class Robot extends IterativeRobot {
     
     private static final int PORT_SHOOTER_LEFT = 4;
     private static final int PORT_SHOOTER_RIGHT = 5;
-    private static final int PORT_SHOOTER_KICKER = 6;
+    private static final int PORT_SHOOTER_KICKER1 = 6;
+    private static final int PORT_SHOOTER_KICKER2 = 7;
     private static final int PORT_SHOOTER_LIFT = 0;
 
     // Drive Adjustments
     private static final double JOYSTICK_DEADZONE = 0.1;
-    private static final double JOYSTICK_SCALE_FLAT = 0.85;
-    private static final double JOYSTICK_SCALE_POWER = 2;
+    private static final double JOYSTICK_SCALE_FLAT = 0.4;
+    private static final double JOYSTICK_SCALE_POWER = 1;
     private static final double JOYSTICK_DEADZONE_PID = 0.2;
-
-
+    private static final double DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE = 0.3;
 
     // Axes
     private static int AXIS_MOVE = 1;
@@ -40,32 +41,43 @@ public class Robot extends IterativeRobot {
     private static int BUTTON_SHOOTER_WHEELSPIN_OUT = 1;
     private static int BUTTON_SHOOTER_LIFT_UP = 5;
     private static int BUTTON_SHOOTER_LIFT_DOWN = 3;
-    private static final double OFFSET_SHOOTER = 0.17;
-    private static final double SPEED_SHOOTER_LIFT_UP = -0.5;
-    private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
 
     //PID Constants
-    private static final double KP_POT = 0;
-    private static final double KI_POT = 0;
-    private static final double KD_POT = 0;
+    private static final double KP_POT = 0.002;
+    private static final double KI_POT = 0.001;
+    private static final double KD_POT = 0.001;
 
     private static final double KP_THIS_SHIT = 0;
     private static final double KD_THIS_SHIT = 0;
     
-    private static final double KP_THAT_SHIT = 0;
-    private static final double KD_THAT_SHIT = 0;
+    private static final double KP_THAT_SHIT = 0.1;
+    private static final double KD_THAT_SHIT = 0.1;
 
     public static final double KP_THE_OTHER_SHIT = 0.05;
     public static final double KD_THE_OTHER_SHIT = 0.1;
+
+    //Shooter Constants
     private static final double SPEED_SHOOTER_WHEEL_LEFT = 1;
     private static final double SPEED_SHOOTER_WHEEL_RIGHT = 1;
+
+    private static final double ANGLE_LIFT_DEFAULT = 60;
+    private static final double TOLERANCE_PID_POT = 0.1;
+//    private static final double OFFSET_SHOOTER = 0.17;
+//    private static final double SPEED_SHOOTER_LIFT_UP = -0.5;
+//    private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
+
+    private static final double ANGLE_SHOOTER_KICKER1_REST = 0.75;
+    private static final double ANGLE_SHOOTER_KICKER2_REST = 0;
+    private static final double ANGLE_SHOOTER_KICKER1_LAUNCH = 0.25;
+    private static final double ANGLE_SHOOTER_KICKER2_LAUNCH = 0.5;
 
 
     private RobotDrive drive;
 
     private VictorSP shooterWheelLeft;
     private VictorSP shooterWheelRight;
-    private Servo shooterKicker;
+    private Servo shooterKicker1;
+    private Servo shooterKicker2;
 
     private CANTalon shooterWheelLift;
 
@@ -87,9 +99,6 @@ public class Robot extends IterativeRobot {
     //private double thisAdjustment;
     private double thatAdjustment;
     private double theOtherAdjustment;
-
-    private double angleCoeff = 0.17;
-    private double targetAngle = 60;
     private PIDController potPID;
 
     @Override
@@ -102,16 +111,19 @@ public class Robot extends IterativeRobot {
 
         drive = new RobotDrive(frontLeft, rearLeft, frontRight, rearRight);
 
-        drive.setExpiration(0.5);
+        drive.setExpiration(0.75);
 
         shooterWheelLeft = new VictorSP(PORT_SHOOTER_LEFT);
         shooterWheelRight = new VictorSP(PORT_SHOOTER_RIGHT);
-        shooterKicker = new Servo(PORT_SHOOTER_KICKER);
+        shooterKicker1 = new Servo(PORT_SHOOTER_KICKER1);
+        shooterKicker2 = new Servo(PORT_SHOOTER_KICKER2);
         shooterWheelLift = new CANTalon(PORT_SHOOTER_LIFT);
 
         hall1 = new DigitalInput(0);
         pot = new AnalogPotentiometer(1,5000); // Range: 1950-4560
         potPID = new PIDController(KP_POT, KI_POT, KD_POT, pot, shooterWheelLift);
+        potPID.setPercentTolerance(TOLERANCE_PID_POT);
+        potPID.enable();
 
         joystick = new Joystick(0);
         
@@ -127,6 +139,8 @@ public class Robot extends IterativeRobot {
         theOtherShit.calibrate();
         theOtherPIDController = new PIDController(KP_THE_OTHER_SHIT, 0, KD_THE_OTHER_SHIT, theOtherShit, output -> {});
 
+        NetworkTable.globalDeleteAll();
+        NetworkTable.flush();
     }
 
     @Override
@@ -141,7 +155,6 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void teleopInit() {
-
         // Reset adjustment
 //        thisAdjustment = thisShit.getAngle();
 
@@ -149,8 +162,6 @@ public class Robot extends IterativeRobot {
 //        thisPIDController.disable();
         thatPIDController.disable();
         theOtherPIDController.disable();
-
-        potPID.enable();
 
         weatherStatus = CalibMath.answerQuestion();
 
@@ -167,6 +178,7 @@ public class Robot extends IterativeRobot {
             BUTTON_SHOOTER_WHEELSPIN_OUT = 6;
             BUTTON_SHOOTER_WHEELSPIN_IN = 5;
         }
+//        CalibVision.filterRectangle();
     }
 
     boolean triggerPressed; //so lonely
@@ -174,18 +186,17 @@ public class Robot extends IterativeRobot {
     @Override
     public void teleopPeriodic() {
 
-        double angle = SmartDashboard2.put("angle", (pot.get() - 1950) / 17.4);
+        drive();
         liftShooter();
         shootAndIntake();
 
         // Debug
         // Drive values
         SmartDashboard2.put("derp", CalibMath.adjustedDeadband(joystick.getX(),0.3)); //save "derp" to dictionary
-        SmartDashboard2.put("angle", angle);
-
+        SmartDashboard2.put("angle", (pot.get() - 1950) / 17.4);
         // PID values
-        pidControl(thatPIDController, "that");
-        pidControl(theOtherPIDController, "theOther");
+        SmartDashboard2.put("thatPIDController", thatPIDController);
+        SmartDashboard2.put("theOtherPIDController", theOtherPIDController);
 
         //Weather
         SmartDashboard2.put("Temperature", thisShit.getTemperature());
@@ -193,12 +204,7 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Will it rain?", weatherStatus);
 
         SmartDashboard2.put("Hall",hall1);
-        SmartDashboard2.put("Pot", pot.get());
-
-        double pot_kP = SmartDashboard2.get("kp_pot", KD_POT);
-        double pot_kI = SmartDashboard2.get("ki_pot", KI_POT);
-        double pot_kD = SmartDashboard2.get("kd_pot", KD_POT);
-        potPID.setPID(pot_kP, pot_kI, pot_kD);
+        SmartDashboard2.put("PotPID", potPID);
 
     }
 
@@ -243,6 +249,11 @@ public class Robot extends IterativeRobot {
                                                      CalibMath.inverseAdjustedDeadband(throttleVal,0.5) * rotateVal
                                                      + pidAdjust(thatPIDController, thatDegrees, rotateVal));
 
+        if (Math.abs(throttledMove) > 0.2 || SmartDashboard2.get("targetAngle", 110) > 110) {
+            potPID.disable();
+        } else {
+            potPID.enable();
+        }
         drive.arcadeDrive(throttledMove, throttledRotate);
     }
 
@@ -272,18 +283,26 @@ public class Robot extends IterativeRobot {
     }
 
     public void liftShooter() {
-        double liftUpSpeed = SmartDashboard2.get("liftUpSpeed", SPEED_SHOOTER_LIFT_UP);
-        double liftDownSpeed = SmartDashboard2.get("liftDownSpeed", SPEED_SHOOTER_LIFT_DOWN);
+        double targetAngle = SmartDashboard2.get("targetAngle", ANGLE_LIFT_DEFAULT);
+        int isDirectionUp;
         // Shooter Lift
         if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
-            SmartDashboard2.put("targetAngle", ++targetAngle);
+            if ((pot.get()-1950)/17.4 < 420-300) SmartDashboard2.put("targetAngle", ++targetAngle);
+            isDirectionUp = 1;
         } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
-            SmartDashboard2.put("targetAngle", --targetAngle);
+            if ((pot.get()-1950)/17.4 < 420-300) SmartDashboard2.put("targetAngle", --targetAngle);
+            isDirectionUp = -1;
+        }
+        else {
+            isDirectionUp = 0;
         }
         targetAngle = SmartDashboard2.get("targetAngle", targetAngle);
         double setpoint = targetAngle * 17.4 + 1950;
         potPID.setSetpoint(setpoint);
         SmartDashboard2.put("targetAngle", targetAngle);
+        if(!potPID.isEnabled()){
+            shooterWheelLift.set(DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE * isDirectionUp);
+        }
     }
 
     public void shootAndIntake() {
@@ -291,28 +310,27 @@ public class Robot extends IterativeRobot {
         double shooterRightWheelSpeed = SmartDashboard2.get("rightWheelSpeed", SPEED_SHOOTER_WHEEL_RIGHT);
         // Shooter Wheels
         if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_IN)) {
+            shooterKicker1.set(ANGLE_SHOOTER_KICKER1_REST);
+            shooterKicker2.set(ANGLE_SHOOTER_KICKER2_REST);
+            Timer.delay(0.1);
             shooterWheelLeft.set(shooterLeftWheelSpeed);
             shooterWheelRight.set(-shooterRightWheelSpeed);
-            shooterKicker.set(-1);
         } else if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_OUT)) {
             shooterWheelLeft.set(-shooterLeftWheelSpeed);
             shooterWheelRight.set(shooterRightWheelSpeed);
             Timer.delay(0.5); // Spinning up...
-            shooterKicker.set(1);
+            shooterKicker1.set(ANGLE_SHOOTER_KICKER1_LAUNCH);
+            shooterKicker2.set(ANGLE_SHOOTER_KICKER2_LAUNCH);
         } else {
             shooterWheelLeft.set(0);
             shooterWheelRight.set(0);
-            shooterKicker.set(-SmartDashboard2.get("kickerReturn", 0.3));
+            shooterKicker1.set(ANGLE_SHOOTER_KICKER1_REST);
+            shooterKicker2.set(ANGLE_SHOOTER_KICKER2_REST);
         }
     }
-    
-    private void pidControl(PIDController pidController, String name) {
-        SmartDashboard2.put("is" + name + "PIDEnabled", pidController.isEnabled());
-        SmartDashboard2.put(name + "Setpoint", pidController.getSetpoint());
-        double kP = SmartDashboard2.get(name + "PID_kP", pidController.getP());
-        double kI = SmartDashboard2.get(name + "PID_kI", pidController.getI());
-        double kD = SmartDashboard2.get(name + "PID_kD", pidController.getD());
-        pidController.setPID(kP, kI, kD);
-        SmartDashboard2.put(name + "PIDValue", pidController.get());
+
+    @Override
+    public void disabledInit() {
+        System.out.println("Default IterativeRobot.disabledInit() method... Overload me, Chandler!");
     }
 }
