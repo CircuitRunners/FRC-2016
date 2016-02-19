@@ -22,7 +22,7 @@ public class Robot extends IterativeRobot {
 
     // Drive Adjustments
     private static final double JOYSTICK_DEADZONE = 0.1;
-    private static final double JOYSTICK_SCALE_FLAT = 0.4;
+    private static final double JOYSTICK_SCALE_FLAT = 0.7;
     private static final double JOYSTICK_SCALE_POWER = 1;
     private static final double JOYSTICK_DEADZONE_PID = 0.2;
     private static final double DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE = 0.3;
@@ -220,7 +220,7 @@ public class Robot extends IterativeRobot {
 
         if (SmartDashboard2.get("isXbox", false)) throttleVal = 1;
 
-        double rotateVal = SmartDashboard2.put("rotateVal", CalibMath.scalePower(twistVal,
+        double rotateVal = SmartDashboard2.put("rotateVal", CalibMath.scaleDoubleFlat(twistVal,
                                                                                  SmartDashboard2.get("joystickDeadzone", JOYSTICK_DEADZONE),
                                                                                  SmartDashboard2.get("joystickScaleFlat", JOYSTICK_SCALE_FLAT),
                                                                                  SmartDashboard2.get("joystickScalePower", JOYSTICK_SCALE_POWER))); //could make magic numbers into constants but who cares
@@ -292,7 +292,9 @@ public class Robot extends IterativeRobot {
             if ((pot.get()-1950)/17.4 < 420-300) SmartDashboard2.put("targetAngle", ++targetAngle);
             isDirectionUp = 1;
         } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
-            if ((pot.get()-1950)/17.4 < 420-300) SmartDashboard2.put("targetAngle", --targetAngle);
+            if ((pot.get()-1950)/17.4 < 420-300 && SmartDashboard2.get("targetAngle",0) > 33) {
+                SmartDashboard2.put("targetAngle", --targetAngle);
+            }
             isDirectionUp = -1;
         }
         else {
