@@ -3,14 +3,11 @@ package com.github.circuitrunners;
 
 import com.analog.adis16448.frc.ADIS16448_IMU;
 import com.github.circuitrunners.akilib.SmartDashboard2;
-import com.github.circuitrunners.akilib.Xbox;
 import com.github.circuitrunners.calib.CalibMath;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.tables.ITable;
 import edu.wpi.first.wpilibj.vision.AxisCamera;
-
-import java.util.Random;
 
 public class Robot extends IterativeRobot {
 
@@ -25,6 +22,7 @@ public class Robot extends IterativeRobot {
     private static final int PORT_SHOOTER_LIFT = 0;
     private static final int PORT_SHOOTER_KICKER = 1;
     private static final int PORT_JOYSTICK = 0;
+    private static final int PORT_XBOX = 1;
 
     // Drive Adjustments
     private static final double JOYSTICK_DEADZONE = 0.1;
@@ -44,7 +42,6 @@ public class Robot extends IterativeRobot {
     private static final double TOP_CAMERA_HEIGHT = 14;
 
 
-
     // Axes
     private static int AXIS_MOVE = 1;
     private static int AXIS_ROTATE = 2;
@@ -56,11 +53,9 @@ public class Robot extends IterativeRobot {
 
     private static int BUTTON_SHOOTER_LIFT_DOWN = 3;
     private static int BUTTON_SHOOTER_LIFT_UP = 5;
-    private static int RESET_LIFT = 9;
-    private static int BUTTON_SHOOTER_WHEELSPIN_OUT = 1;
+    private static int RESET_LIFT = 6;
+    private static int BUTTON_SHOOTER_WHEELSPIN_OUT = 2;
     private static int BUTTON_SHOOTER_WHEELSPIN_IN = 2;
-    private static final double SPEED_SHOOTER_KICKER_OUT = 1;
-    private static final double SPEED_SHOOTER_KICKER_IN = 0;
 
     //PID Constants
     private static final double KP_POT = 0.002;
@@ -85,6 +80,8 @@ public class Robot extends IterativeRobot {
 //    private static final double OFFSET_SHOOTER = 0.17;
     private static final double SPEED_SHOOTER_LIFT_UP = 0.5;
     private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
+    private static final double SPEED_SHOOTER_KICKER_OUT = 1;
+    private static final double SPEED_SHOOTER_KICKER_IN = 0.3;
 
     private static final double ANGLE_SHOOTER_KICKER1_REST = 0.75;
     private static final double ANGLE_SHOOTER_KICKER2_REST = 0;
@@ -103,6 +100,7 @@ public class Robot extends IterativeRobot {
     private DigitalInput liftLimit;
 
     private Joystick joystick;
+    private Joystick xbox;
 
     private AnalogGyro theOtherShit;
     private PIDController theOtherPIDController;
@@ -150,6 +148,7 @@ public class Robot extends IterativeRobot {
         potPID.enable();
 
         joystick = new Joystick(PORT_JOYSTICK);
+        xbox = new Joystick(PORT_XBOX);
         
         thisShit = new ADIS16448_IMU();
         thisShit.calibrate();
@@ -190,7 +189,6 @@ public class Robot extends IterativeRobot {
 
         // Drive Controls
         if (joystick.getIsXbox()) {
-            joystick = new Xbox(PORT_JOYSTICK);
             AXIS_MOVE = 1;
             AXIS_ROTATE = 4;
 
@@ -218,7 +216,7 @@ public class Robot extends IterativeRobot {
         liftShooter();
         shootAndIntake();
 
-        if(joystick.getRawButton(RESET_LIFT)) SmartDashboard2.put("targetAngle",ANGLE_LIFT_DEFAULT);
+        if(xbox.getRawButton(RESET_LIFT)) SmartDashboard2.put("targetAngle",ANGLE_LIFT_DEFAULT);
 
         // Debug
         // Drive values
@@ -340,10 +338,10 @@ public class Robot extends IterativeRobot {
     public void liftShooter() {
         int isDirectionUp = 0;
         // Shooter Lift
-        if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
+        if (xbox.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
             targetAngle += SPEED_SHOOTER_LIFT_UP;
             if ((pot.get()-1950)/17.4 < 420-300) SmartDashboard2.put("targetAngle", targetAngle);
-        } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
+        } else if (xbox.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
             if ((pot.get()-1950)/17.4 < 420-300 && liftLimit.get()) {
                 targetAngle -= SPEED_SHOOTER_LIFT_DOWN;
                 SmartDashboard2.put("targetAngle", targetAngle);
@@ -352,8 +350,8 @@ public class Robot extends IterativeRobot {
                 potPID.disable();
             }
         }
-        if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) isDirectionUp = 1;
-        else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)&&liftLimit.get()) isDirectionUp = -1;
+        if (xbox.getRawButton(BUTTON_SHOOTER_LIFT_UP)) isDirectionUp = 1;
+        else if (xbox.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)&&liftLimit.get()) isDirectionUp = -1;
         targetAngle = SmartDashboard2.get("targetAngle", targetAngle);
         double setpoint = targetAngle * 17.4 + 1950;
         potPID.setSetpoint(setpoint);
@@ -371,9 +369,10 @@ public class Robot extends IterativeRobot {
             shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
             shooterWheelLeft.set(shooterLeftWheelSpeed);
             shooterWheelRight.set(-shooterRightWheelSpeed);
-        } else if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_OUT)) {
+        } else if (xbox.getRawButton(BUTTON_SHOOTER_WHEELSPIN_OUT)) {
             shooterWheelLeft.set(-shooterLeftWheelSpeed);
             shooterWheelRight.set(shooterRightWheelSpeed);
+            Timer.delay(1);
             shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
         } else {
             shooterWheelLeft.set(0);
@@ -383,40 +382,39 @@ public class Robot extends IterativeRobot {
     }
 
     public double[] getStuff(){
-        final ITable table = grip.getSubTable("contours");
-        for (String key : table.getKeys()) {
-            if (table.getNumberArray(key, new double[0]).length == 0) {
-                System.out.println("No contours for you!" + new Random().nextBoolean());
-                return null;
-            }
+        try {
+            final ITable table = grip.getSubTable("contours");
+
+            int largest = CalibMath.getLargestIndex(table.getNumberArray("area", new double[0]));
+
+            double[] centerXs = table.getNumberArray("centerX", new double[0]);
+            double centerX = centerXs[largest];
+
+            double[] centerYs = table.getNumberArray("centerY", new double[0]);
+            double centerY = centerYs[largest];
+
+            double[] widths = table.getNumberArray("width", new double[0]);
+            double width = widths[largest];
+
+            double[] heights = table.getNumberArray("height", new double[0]);
+            double height = heights[largest];
+
+            double[] areas = table.getNumberArray("area", new double[0]);
+            double area = areas[largest];
+
+            double y = -((2 * (centerY / CAMERA_RESOLUTION_Y)) - 1);
+            double distance = (TOP_TARGET_HEIGHT - TOP_CAMERA_HEIGHT) /
+                    Math.tan((y * VERTICAL_FOV / 2.0 + CAMERA_ANGLE) * Math.PI / 180);
+            //				angle to target...would not rely on this
+            double targetX = (2 * (centerX / CAMERA_RESOLUTION_X)) - 1;
+            double azimuth = CalibMath.normalize360(targetX * HORIZONTAL_FOV / 2.0 + 0);
+
+            double[] values = {distance, azimuth};
+            return values;
+        } catch (ArrayIndexOutOfBoundsException e) {
+            e.printStackTrace();
+            return new double[]{0, 0};
         }
-
-        int largest = CalibMath.getLargestIndex(table.getNumberArray("area",new double[0]));
-
-        double[] centerXs = table.getNumberArray("centerX", new double[0]);
-        double centerX = centerXs[largest];
-
-        double[] centerYs = table.getNumberArray("centerY", new double[0]);
-        double centerY = centerYs[largest];
-
-        double[] widths = table.getNumberArray("width", new double[0]);
-        double width = widths[largest];
-
-        double[] heights = table.getNumberArray("height", new double[0]);
-        double height = heights[largest];
-
-        double[] areas = table.getNumberArray("area", new double[0]);
-        double area = areas[largest];
-
-        double y= -((2 * (centerY / CAMERA_RESOLUTION_Y)) - 1);
-        double distance = (TOP_TARGET_HEIGHT - TOP_CAMERA_HEIGHT) /
-                Math.tan((y * VERTICAL_FOV / 2.0 + CAMERA_ANGLE) * Math.PI / 180);
-//				angle to target...would not rely on this
-        double targetX = (2 * (centerX / CAMERA_RESOLUTION_X)) - 1;
-        double azimuth = CalibMath.normalize360(targetX*HORIZONTAL_FOV /2.0 + 0);
-
-        double[] values = {distance,azimuth};
-        return values;
     }
 
     @Override
