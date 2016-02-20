@@ -44,6 +44,7 @@ public class Robot extends IterativeRobot {
     private static final double TOP_CAMERA_HEIGHT = 14;
 
 
+
     // Axes
     private static int AXIS_MOVE = 1;
     private static int AXIS_ROTATE = 2;
@@ -55,6 +56,7 @@ public class Robot extends IterativeRobot {
 
     private static int BUTTON_SHOOTER_LIFT_DOWN = 3;
     private static int BUTTON_SHOOTER_LIFT_UP = 5;
+    private static int RESET_LIFT = 9;
     private static int BUTTON_SHOOTER_WHEELSPIN_OUT = 1;
     private static int BUTTON_SHOOTER_WHEELSPIN_IN = 2;
     private static final double SPEED_SHOOTER_KICKER_OUT = 1;
@@ -81,8 +83,8 @@ public class Robot extends IterativeRobot {
     private static final double ANGLE_LIFT_DEFAULT = 30;
     private static final double TOLERANCE_PID_POT = 0.1;
 //    private static final double OFFSET_SHOOTER = 0.17;
-//    private static final double SPEED_SHOOTER_LIFT_UP = -0.5;
-//    private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
+    private static final double SPEED_SHOOTER_LIFT_UP = 0.5;
+    private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
 
     private static final double ANGLE_SHOOTER_KICKER1_REST = 0.75;
     private static final double ANGLE_SHOOTER_KICKER2_REST = 0;
@@ -95,10 +97,10 @@ public class Robot extends IterativeRobot {
     private VictorSP shooterWheelLeft;
     private VictorSP shooterWheelRight;
 
-    private CANTalon shooterWheelLift;
+    private CANTalon shooterLift;
 
     private CANTalon shooterKicker;
-    private DigitalInput shooterKickerReturnSensor;
+    private DigitalInput liftLimit;
 
     private Joystick joystick;
 
@@ -138,12 +140,12 @@ public class Robot extends IterativeRobot {
 
         shooterWheelLeft = new VictorSP(PORT_SHOOTER_LEFT);
         shooterWheelRight = new VictorSP(PORT_SHOOTER_RIGHT);
-        shooterWheelLift = new CANTalon(PORT_SHOOTER_LIFT);
+        shooterLift = new CANTalon(PORT_SHOOTER_LIFT);
         shooterKicker = new CANTalon(PORT_SHOOTER_KICKER);
-        shooterKickerReturnSensor = new DigitalInput(0);
+        liftLimit = new DigitalInput(0);
 
         pot = new AnalogPotentiometer(1,5000); // Range: 1950-4560
-        potPID = new PIDController(KP_POT, KI_POT, KD_POT, pot, shooterWheelLift);
+        potPID = new PIDController(KP_POT, KI_POT, KD_POT, pot, shooterLift);
         potPID.setPercentTolerance(TOLERANCE_PID_POT);
         potPID.enable();
 
@@ -205,7 +207,7 @@ public class Robot extends IterativeRobot {
             setControlType(SmartDashboard2.get("driverControlType", DRIVER_CONTROL_TYPE));
         }
 
-        targetAngle = SmartDashboard2.get("targetAngle", ANGLE_LIFT_DEFAULT);
+        targetAngle = SmartDashboard2.put("targetAngle", ANGLE_LIFT_DEFAULT);
     }
 
     boolean triggerPressed; //so lonely
@@ -215,6 +217,8 @@ public class Robot extends IterativeRobot {
         drive();
         liftShooter();
         shootAndIntake();
+
+        if(joystick.getRawButton(RESET_LIFT)) SmartDashboard2.put("targetAngle",ANGLE_LIFT_DEFAULT);
 
         // Debug
         // Drive values
@@ -229,7 +233,7 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Pressure", thisShit.getBarometricPressure());
         SmartDashboard2.put("Will it rain?", weatherStatus);
 
-        SmartDashboard2.put("Hall", shooterKickerReturnSensor);
+        SmartDashboard2.put("Hall", liftLimit);
         SmartDashboard2.put("pot", pot);
         SmartDashboard2.put("PotPID", potPID);
        // SmartDashboard2.put("goodToGo", isShooterAimed);
@@ -241,6 +245,21 @@ public class Robot extends IterativeRobot {
         if (temp != null) {
             SmartDashboard2.put("azimuth", temp[1]);
             SmartDashboard2.put("distance", temp[0]);
+        }
+    }
+
+    private void moveDistance(double distance) {
+        double initialDistance = thisShit.getMagX();
+        // TODO: PID Stuff
+
+    }
+
+    private void setControlType(String driverControlType) {
+        switch (driverControlType) {
+            case "VERSION_2":
+                break;
+            case "VERSION_3":
+                break;
         }
     }
 
@@ -283,17 +302,17 @@ public class Robot extends IterativeRobot {
 
         double throttledRotate = SmartDashboard2.put("throttledRotate",
                                                      CalibMath.inverseAdjustedDeadband(throttleVal,0.5) * rotateVal
-                                                     + pidAdjust(thatPIDController, thatDegrees, rotateVal));
+                                                     + pidAdjustDrive(thatPIDController, thatDegrees, rotateVal));
 
         if (Math.abs(throttledMove) > 0.2 || SmartDashboard2.get("targetAngle", 110) > 110) {
             potPID.disable();
-        } else {
+        } else if (liftLimit.get()){
             potPID.enable();
         }
         drive.arcadeDrive(throttledMove, throttledRotate);
     }
 
-    private double pidAdjust(PIDController pidController, double setpoint, double rotateVal) {
+    private double pidAdjustDrive(PIDController pidController, double setpoint, double rotateVal) {
         // PID Enable/Disable
         if (joystick.getRawButton(BUTTON_PID_ENABLE) && !triggerPressed) {
             pidController.setSetpoint(setpoint);
@@ -319,26 +338,28 @@ public class Robot extends IterativeRobot {
     }
 
     public void liftShooter() {
-        int isDirectionUp;
+        int isDirectionUp = 0;
         // Shooter Lift
         if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) {
-            if ((pot.get()-1950)/17.4 < 420-300) SmartDashboard2.put("targetAngle", ++targetAngle);
-            isDirectionUp = 1;
+            targetAngle += SPEED_SHOOTER_LIFT_UP;
+            if ((pot.get()-1950)/17.4 < 420-300) SmartDashboard2.put("targetAngle", targetAngle);
         } else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)) {
-            if ((pot.get()-1950)/17.4 < 420-300 && SmartDashboard2.get("targetAngle",0) > 30) {
-                SmartDashboard2.put("targetAngle", --targetAngle);
+            if ((pot.get()-1950)/17.4 < 420-300 && liftLimit.get()) {
+                targetAngle -= SPEED_SHOOTER_LIFT_DOWN;
+                SmartDashboard2.put("targetAngle", targetAngle);
+            } else {
+                shooterLift.set(0);
+                potPID.disable();
             }
-            isDirectionUp = -1;
         }
-        else {
-            isDirectionUp = 0;
-        }
+        if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_UP)) isDirectionUp = 1;
+        else if (joystick.getRawButton(BUTTON_SHOOTER_LIFT_DOWN)&&liftLimit.get()) isDirectionUp = -1;
         targetAngle = SmartDashboard2.get("targetAngle", targetAngle);
         double setpoint = targetAngle * 17.4 + 1950;
         potPID.setSetpoint(setpoint);
         SmartDashboard2.put("targetAngle", targetAngle);
         if(!potPID.isEnabled()){
-            shooterWheelLift.set(DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE * isDirectionUp);
+            shooterLift.set(DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE * isDirectionUp);
         }
     }
 
@@ -347,7 +368,7 @@ public class Robot extends IterativeRobot {
         double shooterRightWheelSpeed = SmartDashboard2.get("rightWheelSpeed", SPEED_SHOOTER_WHEEL_RIGHT);
         // Shooter Wheels
         if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_IN)) {
-            if (shooterKickerReturnSensor.get()) shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
+            shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
             shooterWheelLeft.set(shooterLeftWheelSpeed);
             shooterWheelRight.set(-shooterRightWheelSpeed);
         } else if (joystick.getRawButton(BUTTON_SHOOTER_WHEELSPIN_OUT)) {
@@ -396,24 +417,6 @@ public class Robot extends IterativeRobot {
 
         double[] values = {distance,azimuth};
         return values;
-    }
-
-    private void moveDistance(double distance) {
-        double initialX = thisShit.getMagX();
-        double initialY = thisShit.getMagY();
-        while (thisShit.getMagX() < initialX + distance) {
-            drive.arcadeDrive(1, 0);
-        }
-    }
-
-
-    private void setControlType(String driverControlType) {
-        switch (driverControlType) {
-            case "VERSION_2":
-                break;
-            case "VERSION_3":
-                break;
-        }
     }
 
     @Override
