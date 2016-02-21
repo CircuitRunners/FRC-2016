@@ -424,7 +424,6 @@ public class Robot extends IterativeRobot {
             double[] values = {distance, azimuth};
             return values;
         } catch (ArrayIndexOutOfBoundsException e) {
-            e.printStackTrace();
             return new double[]{0, 0};
         }
     }
