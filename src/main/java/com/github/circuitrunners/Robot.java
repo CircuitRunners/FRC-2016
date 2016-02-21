@@ -72,8 +72,8 @@ public class Robot extends IterativeRobot {
     private static final double ANGLE_LIFT_REST = 28;
     private static final double TOLERANCE_PID_POT = 0.1;
 //    private static final double OFFSET_SHOOTER = 0.17;
-    private static final double SPEED_SHOOTER_LIFT_UP = 0.5;
-    private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
+    private static final double ANGLE_LIFT_INCREMENT = 0.5;
+    private static final double ANGLE_LIFT_DECREMENT = 0.5;
     private static final double SPEED_SHOOTER_KICKER_OUT = 1;
     private static final double SPEED_SHOOTER_KICKER_IN = 0.3;
 
@@ -343,12 +343,12 @@ public class Robot extends IterativeRobot {
         // Set target angle to SmartDashboard
         if (buttonShooterLiftUp.get()) {
             if ((pot.get()-1950)/17.4 < 420-300) {
-                targetAngle += SPEED_SHOOTER_LIFT_UP;
+                targetAngle += ANGLE_LIFT_INCREMENT;
                 SmartDashboard2.put("targetAngle", targetAngle);
             }
         } else if (buttonShooterLiftDown.get()) {
             if ((pot.get()-1950)/17.4 < 420-300 && liftLimit.get()) {
-                targetAngle -= SPEED_SHOOTER_LIFT_DOWN;
+                targetAngle -= ANGLE_LIFT_DECREMENT;
                 SmartDashboard2.put("targetAngle", targetAngle);
             }
         } else if(resetLift.get()) SmartDashboard2.put("targetAngle", ANGLE_LIFT_REST);
@@ -367,9 +367,9 @@ public class Robot extends IterativeRobot {
         }
 
         // Set lift direction
-        if (buttonShooterLiftUp.get()) liftDirection = 1;
-        else if (buttonShooterLiftDown.get() && liftLimit.get()) liftDirection = -1;
+        liftDirection = buttonShooterLiftUp.get() ? 1 : buttonShooterLiftDown.get() && liftLimit.get() ? -1 : 0;
 
+        // Manual control based on lift direction
         if(!potPID.isEnabled()){
             shooterLift.set(DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE * liftDirection);
         }
