@@ -332,31 +332,28 @@ public class Robot extends IterativeRobot {
     }
 
     public void liftShooter() {
-        // Direction that lift should travel
-        int liftDirection = 0;
-
         // Put sensors on SmartDashboard
         SmartDashboard2.put("Hall", liftLimit);
         SmartDashboard2.put("pot", pot);
         SmartDashboard2.put("PotPID", potPID);
 
-        // Set target angle to SmartDashboard
-        if (buttonShooterLiftUp.get()) {
-            if ((pot.get()-1950)/17.4 < 420-300) {
+        // Set target angle to SmartDashboard if in range
+        if ((pot.get() - 1950) / 17.4 < 420 - 300) {
+            if (buttonShooterLiftUp.get()) {
                 targetAngle += ANGLE_LIFT_INCREMENT;
                 SmartDashboard2.put("targetAngle", targetAngle);
+            } else if (buttonShooterLiftDown.get()) {
+                if (liftLimit.get()) {
+                    targetAngle -= ANGLE_LIFT_DECREMENT;
+                    SmartDashboard2.put("targetAngle", targetAngle);
+                }
             }
-        } else if (buttonShooterLiftDown.get()) {
-            if ((pot.get()-1950)/17.4 < 420-300 && liftLimit.get()) {
-                targetAngle -= ANGLE_LIFT_DECREMENT;
-                SmartDashboard2.put("targetAngle", targetAngle);
-            }
-        } else if(resetLift.get()) SmartDashboard2.put("targetAngle", ANGLE_LIFT_REST);
+        }
+        if (resetLift.get()) SmartDashboard2.put("targetAngle", ANGLE_LIFT_REST);
 
         // Get angle from SmartDashboard and set setpoint
         targetAngle = SmartDashboard2.get("targetAngle", targetAngle);
-        double setpoint = targetAngle * 17.4 + 1950;
-        potPID.setSetpoint(setpoint);
+        potPID.setSetpoint(targetAngle * 17.4 + 1950);
 
 
         if (Math.abs(SmartDashboard2.get("throttledMove", 0)) > 0.2 || SmartDashboard2.get("targetAngle", 110) > 110
@@ -367,7 +364,7 @@ public class Robot extends IterativeRobot {
         }
 
         // Set lift direction
-        liftDirection = buttonShooterLiftUp.get() ? 1 : buttonShooterLiftDown.get() && liftLimit.get() ? -1 : 0;
+        int liftDirection = buttonShooterLiftUp.get() ? 1 : buttonShooterLiftDown.get() && liftLimit.get() ? -1 : 0;
 
         // Manual control based on lift direction
         if(!potPID.isEnabled()){
