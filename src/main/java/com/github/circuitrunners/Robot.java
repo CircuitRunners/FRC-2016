@@ -371,7 +371,7 @@ public class Robot extends IterativeRobot {
         }
     }
 
-    Timer shootTimer = new Timer();
+    private Timer shootTimer = new Timer();
     public void shootAndIntake() {
         double shooterLeftWheelSpeed = SmartDashboard2.get("leftWheelSpeed", SPEED_SHOOTER_WHEEL_LEFT);
         double shooterRightWheelSpeed = SmartDashboard2.get("rightWheelSpeed", SPEED_SHOOTER_WHEEL_RIGHT);
@@ -384,8 +384,11 @@ public class Robot extends IterativeRobot {
             shooterWheelLeft.set(-shooterLeftWheelSpeed);
             shooterWheelRight.set(shooterRightWheelSpeed);
             shootTimer.start();
-            if (shootTimer.hasPeriodPassed(1)) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
-            else shootTimer.stop();
+            if (shootTimer.hasPeriodPassed(1)) {
+                shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
+                shootTimer.stop();
+                shootTimer.reset();
+            }
         } else {
             shooterWheelLeft.set(0);
             shooterWheelRight.set(0);
