@@ -2,6 +2,7 @@
 package com.github.circuitrunners;
 
 import com.analog.adis16448.frc.ADIS16448_IMU;
+import com.github.circuitrunners.akilib.PIDSource2;
 import com.github.circuitrunners.akilib.SmartDashboard2;
 import com.github.circuitrunners.akilib.XboxButton;
 import com.github.circuitrunners.calib.CalibMath;
@@ -69,18 +70,13 @@ public class Robot extends IterativeRobot {
     private static final double SPEED_SHOOTER_WHEEL_LEFT = 1;
     private static final double SPEED_SHOOTER_WHEEL_RIGHT = 1;
 
-    private static final double ANGLE_LIFT_DEFAULT = 30;
+    private static final double ANGLE_LIFT_DEFAULT = 28;
     private static final double TOLERANCE_PID_POT = 0.1;
 //    private static final double OFFSET_SHOOTER = 0.17;
     private static final double SPEED_SHOOTER_LIFT_UP = 0.5;
     private static final double SPEED_SHOOTER_LIFT_DOWN = 0.5;
     private static final double SPEED_SHOOTER_KICKER_OUT = 1;
     private static final double SPEED_SHOOTER_KICKER_IN = 0.3;
-
-    private static final double ANGLE_SHOOTER_KICKER1_REST = 0.75;
-    private static final double ANGLE_SHOOTER_KICKER2_REST = 0;
-    private static final double ANGLE_SHOOTER_KICKER1_LAUNCH = 0.25;
-    private static final double ANGLE_SHOOTER_KICKER2_LAUNCH = 0.5;
 
 
     private RobotDrive drive;
@@ -103,6 +99,7 @@ public class Robot extends IterativeRobot {
     private JoystickButton buttonShooterLiftDown;
     private JoystickButton buttonShooterLiftUp;
     private JoystickButton resetLift;
+
     private JoystickButton buttonShooterWheelspinOut;
     private JoystickButton buttonShooterWheelspinIn;
 
@@ -229,15 +226,19 @@ public class Robot extends IterativeRobot {
 
         double[] temp = getStuff();
         if (temp != null) {
-            SmartDashboard2.put("azimuth", temp[1]);
             SmartDashboard2.put("distance", temp[0]);
+            SmartDashboard2.put("azimuth", temp[1]);
         }
     }
 
     private void moveDistance(double distance) {
-        double initialDistance = thisShit.getMagX();
+        double kP = SmartDashboard2.put("movement_kP", 0);
+        double kI = SmartDashboard2.put("movement_kI", 0);
+        double kD = SmartDashboard2.put("movement_kD", 0);
         // TODO: PID Stuff
-
+        PIDSource2 acceleromter = new PIDSource2(thisShit.getMagX());
+        PIDController accelPID = new PIDController(kP, kI, kD, acceleromter, output -> {});
+        drive.drive(accelPID.get(), 0);
     }
 
     private void setControlType(String driverControlType) {
