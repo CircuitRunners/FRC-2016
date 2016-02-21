@@ -69,7 +69,7 @@ public class Robot extends IterativeRobot {
     private static final double SPEED_SHOOTER_WHEEL_LEFT = 1;
     private static final double SPEED_SHOOTER_WHEEL_RIGHT = 1;
 
-    private static final double ANGLE_LIFT_DEFAULT = 28;
+    private static final double ANGLE_LIFT_REST = 28;
     private static final double TOLERANCE_PID_POT = 0.1;
 //    private static final double OFFSET_SHOOTER = 0.17;
     private static final double SPEED_SHOOTER_LIFT_UP = 0.5;
@@ -189,7 +189,7 @@ public class Robot extends IterativeRobot {
         // Drive Controls
         setControlType(SmartDashboard2.get("driverControlType", DRIVER_CONTROL_TYPE));
 
-        targetAngle = SmartDashboard2.put("targetAngle", ANGLE_LIFT_DEFAULT);
+        targetAngle = SmartDashboard2.put("targetAngle", ANGLE_LIFT_REST);
     }
 
     boolean triggerPressed; //so lonely
@@ -332,42 +332,46 @@ public class Robot extends IterativeRobot {
     }
 
     public void liftShooter() {
-        int isDirectionUp = 0;
+        // Direction that lift should travel
+        int liftDirection = 0;
 
+        // Put sensors on SmartDashboard
         SmartDashboard2.put("Hall", liftLimit);
         SmartDashboard2.put("pot", pot);
         SmartDashboard2.put("PotPID", potPID);
 
+        // Set target angle to SmartDashboard
         if (buttonShooterLiftUp.get()) {
-            targetAngle += SPEED_SHOOTER_LIFT_UP;
-            if ((pot.get()-1950)/17.4 < 420-300) SmartDashboard2.put("targetAngle", targetAngle);
+            if ((pot.get()-1950)/17.4 < 420-300) {
+                targetAngle += SPEED_SHOOTER_LIFT_UP;
+                SmartDashboard2.put("targetAngle", targetAngle);
+            }
         } else if (buttonShooterLiftDown.get()) {
             if ((pot.get()-1950)/17.4 < 420-300 && liftLimit.get()) {
                 targetAngle -= SPEED_SHOOTER_LIFT_DOWN;
                 SmartDashboard2.put("targetAngle", targetAngle);
-            } else {
-                shooterLift.set(0);
-                potPID.disable();
             }
-        } else if(resetLift.get()) SmartDashboard2.put("targetAngle", ANGLE_LIFT_DEFAULT);
+        } else if(resetLift.get()) SmartDashboard2.put("targetAngle", ANGLE_LIFT_REST);
 
-        if (buttonShooterLiftUp.get()) isDirectionUp = 1;
-        else if (buttonShooterLiftDown.get() && liftLimit.get()) isDirectionUp = -1;
-
+        // Get angle from SmartDashboard and set setpoint
         targetAngle = SmartDashboard2.get("targetAngle", targetAngle);
         double setpoint = targetAngle * 17.4 + 1950;
         potPID.setSetpoint(setpoint);
-        SmartDashboard2.put("targetAngle", targetAngle);
+
 
         if (Math.abs(SmartDashboard2.get("throttledMove", 0)) > 0.2 || SmartDashboard2.get("targetAngle", 110) > 110
-                || !liftLimit.get()) {
+            || !liftLimit.get()) {
             potPID.disable();
         } else {
             potPID.enable();
         }
 
+        // Set lift direction
+        if (buttonShooterLiftUp.get()) liftDirection = 1;
+        else if (buttonShooterLiftDown.get() && liftLimit.get()) liftDirection = -1;
+
         if(!potPID.isEnabled()){
-            shooterLift.set(DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE * isDirectionUp);
+            shooterLift.set(DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE * liftDirection);
         }
     }
 
