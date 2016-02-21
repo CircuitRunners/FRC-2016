@@ -9,7 +9,6 @@ import com.github.circuitrunners.calib.CalibMath;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.buttons.JoystickButton;
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.tables.ITable;
 import edu.wpi.first.wpilibj.vision.AxisCamera;
 
@@ -299,12 +298,6 @@ public class Robot extends IterativeRobot {
         double throttledRotate = SmartDashboard2.put("throttledRotate",
                                                      CalibMath.inverseAdjustedDeadband(throttleVal,0.5) * rotateVal
                                                      + pidAdjustDrive(thisPIDController, thisDegrees, rotateVal));
-
-        if (Math.abs(throttledMove) > 0.2 || SmartDashboard2.get("targetAngle", 110) > 110) {
-            potPID.disable();
-        } else if (liftLimit.get()){
-            potPID.enable();
-        }
         drive.arcadeDrive(throttledMove, throttledRotate);
     }
 
@@ -366,11 +359,19 @@ public class Robot extends IterativeRobot {
         potPID.setSetpoint(setpoint);
         SmartDashboard2.put("targetAngle", targetAngle);
 
+        if (Math.abs(SmartDashboard2.get("throttledMove", 0)) > 0.2 || SmartDashboard2.get("targetAngle", 110) > 110
+                || !liftLimit.get()) {
+            potPID.disable();
+        } else {
+            potPID.enable();
+        }
+
         if(!potPID.isEnabled()){
             shooterLift.set(DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE * isDirectionUp);
         }
     }
 
+    Timer shootTimer = new Timer();
     public void shootAndIntake() {
         double shooterLeftWheelSpeed = SmartDashboard2.get("leftWheelSpeed", SPEED_SHOOTER_WHEEL_LEFT);
         double shooterRightWheelSpeed = SmartDashboard2.get("rightWheelSpeed", SPEED_SHOOTER_WHEEL_RIGHT);
@@ -382,8 +383,9 @@ public class Robot extends IterativeRobot {
         } else if (buttonShooterWheelspinOut.get()) {
             shooterWheelLeft.set(-shooterLeftWheelSpeed);
             shooterWheelRight.set(shooterRightWheelSpeed);
-            Timer.delay(1);
-            shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
+            shootTimer.start();
+            if (shootTimer.hasPeriodPassed(1)) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
+            else shootTimer.stop();
         } else {
             shooterWheelLeft.set(0);
             shooterWheelRight.set(0);
