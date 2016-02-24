@@ -183,8 +183,7 @@ public class Robot extends IterativeRobot {
         int waitTime;
 
         public AutonomousDriveThread(double moveVal, double rotateVal) {
-            this.moveVal = moveVal;
-            this.rotateVal = rotateVal;
+            this(moveVal, rotateVal, 0);
         }
 
         public AutonomousDriveThread(double moveVal, double rotateVal, int waitTime) {
