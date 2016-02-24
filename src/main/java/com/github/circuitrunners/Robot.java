@@ -2,11 +2,10 @@
 package com.github.circuitrunners;
 
 import com.analog.adis16448.frc.ADIS16448_IMU;
-import com.github.circuitrunners.akilib.PIDSource2;
-import com.github.circuitrunners.akilib.SmartDashboard2;
-import com.github.circuitrunners.akilib.XboxButton;
+import com.github.circuitrunners.akilib.*;
 import com.github.circuitrunners.calib.CalibMath;
 import edu.wpi.first.wpilibj.*;
+import edu.wpi.first.wpilibj.buttons.Button;
 import edu.wpi.first.wpilibj.buttons.JoystickButton;
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.tables.ITable;
@@ -89,18 +88,19 @@ public class Robot extends IterativeRobot {
     private DigitalInput liftLimit;
 
     private Joystick joystick;
-    private Joystick xbox;
+    private Xbox xbox;
 
     // Buttons
-    private JoystickButton buttonPidEnable;
-    private JoystickButton buttonGyroReset;
+    private Button buttonPidEnable;
+    private Button buttonGyroReset;
 
-    private JoystickButton buttonShooterLiftDown;
-    private JoystickButton buttonShooterLiftUp;
-    private JoystickButton resetLift;
+    private Button buttonShooterLiftDown;
+    private Button buttonShooterLiftUp;
+    private Button resetLift;
 
-    private JoystickButton buttonShooterWheelspinOut;
-    private JoystickButton buttonShooterWheelspinIn;
+    private Button buttonShooterWheelspinOut;
+    private Button buttonShooterWheelspinIn;
+    private Button buttonShooterKick;
 
     private AnalogGyro theOtherShit;
     private PIDController theOtherPIDController;
@@ -148,7 +148,7 @@ public class Robot extends IterativeRobot {
         potPID.enable();
 
         joystick = new Joystick(PORT_JOYSTICK);
-        xbox = new Joystick(PORT_XBOX);
+        xbox = new Xbox(PORT_XBOX);
         
         thisShit = new ADIS16448_IMU();
         thisShit.calibrate();
@@ -252,17 +252,19 @@ public class Robot extends IterativeRobot {
 
                 buttonShooterWheelspinOut = new JoystickButton(joystick, 1);
                 buttonShooterWheelspinIn = new JoystickButton(joystick, 2);
+                buttonShooterKick = new Button2(joystick, POVDirection.DOWN);
                 break;
             case "VERSION_2":
                 buttonPidEnable = new JoystickButton(joystick, 4);
                 buttonGyroReset = new JoystickButton(joystick, 6);
 
-                buttonShooterLiftDown = new JoystickButton(xbox, XboxButton.A.ordinal());
-                buttonShooterLiftUp = new JoystickButton(joystick, XboxButton.B.ordinal());
-                resetLift = new JoystickButton(joystick, XboxButton.BACK.ordinal());
+                buttonShooterLiftDown = new XboxButton(xbox, Xbox.Button.A);
+                buttonShooterLiftUp = new XboxButton(xbox, Xbox.Button.B);
+                resetLift = new XboxButton(xbox, Xbox.Button.BACK);
 
-                buttonShooterWheelspinOut = new JoystickButton(joystick, XboxButton.RIGHT_BUMPER.ordinal());
-                buttonShooterWheelspinIn = new JoystickButton(joystick, XboxButton.LEFT_BUMPER.ordinal());
+                buttonShooterWheelspinOut = new XboxButton(xbox, Xbox.Button.RIGHT_BUMPER);
+                buttonShooterWheelspinIn = new JoystickButton(joystick, 1);
+                buttonShooterKick = new JoystickButton(xbox, Xbox.Button.X.ordinal());
                 break;
             case "VERSION_3":
                 break;
@@ -355,7 +357,6 @@ public class Robot extends IterativeRobot {
         targetAngle = SmartDashboard2.get("targetAngle", targetAngle);
         potPID.setSetpoint(targetAngle * 17.4 + 1950);
 
-
         if (Math.abs(SmartDashboard2.get("throttledMove", 0)) > 0.2 || SmartDashboard2.get("targetAngle", 110) > 110
             || !liftLimit.get()) {
             potPID.disable();
@@ -384,17 +385,12 @@ public class Robot extends IterativeRobot {
         } else if (buttonShooterWheelspinOut.get()) {
             shooterWheelLeft.set(-shooterLeftWheelSpeed);
             shooterWheelRight.set(shooterRightWheelSpeed);
-            shootTimer.start();
-            if (shootTimer.hasPeriodPassed(1)) {
-                shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
-                shootTimer.stop();
-                shootTimer.reset();
-            }
         } else {
             shooterWheelLeft.set(0);
             shooterWheelRight.set(0);
             shooterKicker.set(0);
         }
+        if (buttonShooterKick.get()) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
     }
 
     public double[] getStuff(){
