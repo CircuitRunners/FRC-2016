@@ -378,8 +378,12 @@ public class Robot extends IterativeRobot {
         // Put sensors on SmartDashboard
         SmartDashboard2.put("Hall", liftLimit);
 
-        double liftSetpoint = SmartDashboard2.get("liftSetpoint", 0);
+        // Encoder Control
+        // Put shooterLift PID control values to SmartDashboard
         SmartDashboard2.put("liftMotor", shooterLift);
+        // Create setpoint variable from SmartDashboard value
+        double liftSetpoint = SmartDashboard2.get("liftSetpoint", 0);
+        // Check button values
         if (buttonShooterLiftUp.get()) {
             liftSetpoint++;
             SmartDashboard2.put("liftSetpoint", liftSetpoint);
@@ -387,13 +391,16 @@ public class Robot extends IterativeRobot {
             liftSetpoint--;
             SmartDashboard2.put("liftSetpoint", liftSetpoint);
         }
+        // Not else if because should reset while holding above buttons
         if (resetLift.get()) SmartDashboard2.put("liftSetpoint", SETPOINT_LIFT_REST);
 
+        // Liftlimit should enable/disable PID
         if (liftLimit.get()) {
             if (!shooterLift.isEnabled()) shooterLift.enable();
         } else {
             shooterLift.disable();
         }
+        // Actually adjust the setpoint
         shooterLift.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
 
         SmartDashboard2.put("pot", pot);
