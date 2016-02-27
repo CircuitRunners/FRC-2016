@@ -147,10 +147,13 @@ public class Robot extends IterativeRobot {
 
         shooterWheelLeft = new VictorSP(PORT_SHOOTER_LEFT);
         shooterWheelRight = new VictorSP(PORT_SHOOTER_RIGHT);
+
         shooterLift = new CANTalon(PORT_SHOOTER_LIFT);
         shooterLift.setPID(KP_LIFT, KI_LIFT, KD_LIFT);
-        shooterKicker = new CANTalon(PORT_SHOOTER_KICKER);
+        shooterLift.changeControlMode(CANTalon.TalonControlMode.Position);
         liftLimit = new DigitalInput(0);
+
+        shooterKicker = new CANTalon(PORT_SHOOTER_KICKER);
 
         pot = new AnalogPotentiometer(1,5000); // Range: 1950-4560
         potPID = new PIDController(KP_POT, KI_POT, KD_POT, pot, shooterLift);
@@ -380,14 +383,18 @@ public class Robot extends IterativeRobot {
         if (buttonShooterLiftUp.get()) {
             liftSetpoint++;
             SmartDashboard2.put("liftSetpoint", liftSetpoint);
-        } else if (buttonShooterLiftDown.get()) {
+        } else if (buttonShooterLiftDown.get() && liftLimit.get()) {
             liftSetpoint--;
             SmartDashboard2.put("liftSetpoint", liftSetpoint);
         }
         if (resetLift.get()) SmartDashboard2.put("liftSepoint", SETPOINT_LIFT_REST);
 
-        liftSetpoint = SmartDashboard2.get("liftSetpoint", 0);
-        shooterLift.setSetpoint(liftSetpoint);
+        if (liftLimit.get()) {
+            if (!shooterLift.isEnabled()) shooterLift.enable();
+        } else {
+            shooterLift.disable();
+        }
+        shooterLift.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
 
         SmartDashboard2.put("pot", pot);
         SmartDashboard2.put("PotPID", potPID);
