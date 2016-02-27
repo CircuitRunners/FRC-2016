@@ -45,7 +45,6 @@ public class Robot extends IterativeRobot {
     private static final double CAMERA_ANGLE = 13;
     private static final double TOP_CAMERA_HEIGHT = 14;
 
-
     // Axes
     private static int AXIS_MOVE = 1;
     private static int AXIS_ROTATE = 2;
@@ -65,6 +64,11 @@ public class Robot extends IterativeRobot {
 
     public static final double KP_THE_OTHER_SHIT = 0.05;
     public static final double KD_THE_OTHER_SHIT = 0.1;
+
+    private static final double KP_LIFT = 0;
+    private static final double KI_LIFT = 0;
+    private static final double KD_LIFT = 0;
+    private static final double SETPOINT_LIFT_REST = 0;
 
     //Shooter Constants
     private static final double SPEED_SHOOTER_WHEEL_LEFT = 1;
@@ -144,6 +148,7 @@ public class Robot extends IterativeRobot {
         shooterWheelLeft = new VictorSP(PORT_SHOOTER_LEFT);
         shooterWheelRight = new VictorSP(PORT_SHOOTER_RIGHT);
         shooterLift = new CANTalon(PORT_SHOOTER_LIFT);
+        shooterLift.setPID(KP_LIFT, KI_LIFT, KD_LIFT);
         shooterKicker = new CANTalon(PORT_SHOOTER_KICKER);
         liftLimit = new DigitalInput(0);
 
@@ -369,9 +374,24 @@ public class Robot extends IterativeRobot {
     public void liftShooter() {
         // Put sensors on SmartDashboard
         SmartDashboard2.put("Hall", liftLimit);
+
+        double liftSetpoint = SmartDashboard2.get("liftSetpoint", 0);
+        SmartDashboard2.put("liftMotor", shooterLift);
+        if (buttonShooterLiftUp.get()) {
+            liftSetpoint++;
+            SmartDashboard2.put("liftSetpoint", liftSetpoint);
+        } else if (buttonShooterLiftDown.get()) {
+            liftSetpoint--;
+            SmartDashboard2.put("liftSetpoint", liftSetpoint);
+        }
+        if (resetLift.get()) SmartDashboard2.put("liftSepoint", SETPOINT_LIFT_REST);
+
+        liftSetpoint = SmartDashboard2.get("liftSetpoint", 0);
+        shooterLift.setSetpoint(liftSetpoint);
+
         SmartDashboard2.put("pot", pot);
         SmartDashboard2.put("PotPID", potPID);
-
+/*
         // Set target angle to SmartDashboard if in range
         if ((pot.get() - 1950) / 17.4 < 420 - 300) {
             if (buttonShooterLiftUp.get()) {
@@ -404,6 +424,7 @@ public class Robot extends IterativeRobot {
         if(!potPID.isEnabled()){
             shooterLift.set(DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE * liftDirection);
         }
+*/
     }
 
     private Timer shootTimer = new Timer();
