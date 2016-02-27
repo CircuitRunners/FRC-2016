@@ -387,7 +387,7 @@ public class Robot extends IterativeRobot {
             liftSetpoint--;
             SmartDashboard2.put("liftSetpoint", liftSetpoint);
         }
-        if (resetLift.get()) SmartDashboard2.put("liftSepoint", SETPOINT_LIFT_REST);
+        if (resetLift.get()) SmartDashboard2.put("liftSetpoint", SETPOINT_LIFT_REST);
 
         if (liftLimit.get()) {
             if (!shooterLift.isEnabled()) shooterLift.enable();
