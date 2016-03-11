@@ -44,6 +44,7 @@ public class Robot extends IterativeRobot {
     private static final double HORIZONTAL_FOV = 67;
     private static final double CAMERA_ANGLE = 13;
     private static final double TOP_CAMERA_HEIGHT = 14;
+    private static final double SPEED_SHOOTER_KICKER_REST = -0.2;
 
 
     // Axes
@@ -102,16 +103,12 @@ public class Robot extends IterativeRobot {
 
     private Button buttonShooterWheelspinOut;
     private Button buttonShooterWheelspinIn;
-    private Button buttonShooterKick;
-
-    private AnalogGyro theOtherShit;
-    private PIDController theOtherPIDController;
+    private Button buttonShooterKickOut;
+    private Button buttonShooterKickIn;
 
     private ADIS16448_IMU thisShit;
     private PIDController thisPIDController;
     
-    private ADXRS450_Gyro thatShit;
-    private PIDController thatPIDController;
     private String weatherStatus;
 
     private AnalogPotentiometer pot;
@@ -160,14 +157,6 @@ public class Robot extends IterativeRobot {
         thisPIDController = new PIDController(KP_THIS_SHIT, 0, KD_THIS_SHIT, thisShit, output -> {});
         thisPIDController.setPercentTolerance(TOLERANCE_THIS_SHIT);
 
-        thatShit = new ADXRS450_Gyro();
-        thatShit.calibrate();
-        thatPIDController = new PIDController(KP_THAT_SHIT, 0, KD_THAT_SHIT, thatShit, output -> {});
-
-        theOtherShit = new AnalogGyro(0);
-        theOtherShit.calibrate();
-        theOtherPIDController = new PIDController(KP_THE_OTHER_SHIT, 0, KD_THE_OTHER_SHIT, theOtherShit, output -> {});
-
         camera = new AxisCamera("10.10.2.11");
     }
 
@@ -214,8 +203,6 @@ public class Robot extends IterativeRobot {
 
         // Just in case...
         thisPIDController.disable();
-        thatPIDController.disable();
-        theOtherPIDController.disable();
 
         weatherStatus = CalibMath.answerQuestion();
 
@@ -235,11 +222,7 @@ public class Robot extends IterativeRobot {
         shootAndIntake();
 
         // Gyro reset
-        if (buttonGyroReset.get()) {
-            thisShit.reset();
-            thatShit.reset();
-            theOtherShit.reset();
-        }
+        if (buttonGyroReset.get()) thisShit.reset();
 
         // Debug
         // Drive values
@@ -285,7 +268,8 @@ public class Robot extends IterativeRobot {
 
                 buttonShooterWheelspinOut = new JoystickButton(joystick, 1);
                 buttonShooterWheelspinIn = new JoystickButton(joystick, 2);
-                buttonShooterKick = new Button2(joystick, POVDirection.DOWN);
+                buttonShooterKickOut = new Button2(joystick, POVDirection.UP);
+                buttonShooterKickIn = new Button2(joystick, POVDirection.DOWN);
                 break;
             case "VERSION_2":
                 buttonPidEnable = new JoystickButton(joystick, 4);
@@ -297,7 +281,8 @@ public class Robot extends IterativeRobot {
 
                 buttonShooterWheelspinOut = new XboxButton(xbox, Xbox.Button.RIGHT_BUMPER);
                 buttonShooterWheelspinIn = new JoystickButton(joystick, 1);
-                buttonShooterKick = new JoystickButton(xbox, Xbox.Button.X.ordinal());
+                buttonShooterKickIn = new JoystickButton(xbox, Xbox.Button.X.ordinal());
+                buttonShooterKickOut = new JoystickButton(xbox, Xbox.Button.Y.ordinal());
                 break;
             case "VERSION_3":
                 break;
@@ -323,12 +308,6 @@ public class Robot extends IterativeRobot {
         // Gyro values
         double thisRadians = thisShit.getAngle();
         double thisDegrees = Math.toDegrees(thisRadians);
-        double thatDegrees = SmartDashboard2.put("thatDegrees", thatShit.getAngle());
-        double theOtherDegrees = SmartDashboard2.put("theOtherDegrees", theOtherShit.getAngle());
-
-        //Smart Gyro™
-        SmartDashboard2.put("SmartGyro", CalibMath.average(CalibMath.normalize360(thatDegrees),
-                                                           CalibMath.normalize360(theOtherDegrees)));
 
         double throttledRotate = SmartDashboard2.put("throttledRotate",
                                                      CalibMath.inverseAdjustedDeadband(throttleVal,0.5) * rotateVal
@@ -339,8 +318,6 @@ public class Robot extends IterativeRobot {
     private double pidAdjustDrive(PIDController pidController, double setpoint, double rotateVal) {
         // PID values
         SmartDashboard2.put("thisPIDController", thisPIDController);
-        SmartDashboard2.put("thatPIDController", thatPIDController);
-        SmartDashboard2.put("theOtherPIDController", theOtherPIDController);
 
         // PID Enable/Disable
         if (buttonPidEnable.get() && !triggerPressed) {
@@ -406,7 +383,6 @@ public class Robot extends IterativeRobot {
         }
     }
 
-    private Timer shootTimer = new Timer();
     public void shootAndIntake() {
         double shooterLeftWheelSpeed = SmartDashboard2.get("leftWheelSpeed", SPEED_SHOOTER_WHEEL_LEFT);
         double shooterRightWheelSpeed = SmartDashboard2.get("rightWheelSpeed", SPEED_SHOOTER_WHEEL_RIGHT);
@@ -423,7 +399,9 @@ public class Robot extends IterativeRobot {
             shooterWheelRight.set(0);
             shooterKicker.set(0);
         }
-        if (buttonShooterKick.get()) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
+        if (buttonShooterKickOut.get()) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
+        else if (buttonShooterKickIn.get()) shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
+        else shooterKicker.set(SPEED_SHOOTER_KICKER_REST);
     }
 
     public double[] getStuff(){
