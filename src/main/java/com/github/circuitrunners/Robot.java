@@ -25,6 +25,8 @@ public class Robot extends IterativeRobot {
     private static final int PORT_SHOOTER_RIGHT = 5;
     private static final int PORT_SHOOTER_LIFT = 0;
     private static final int PORT_SHOOTER_KICKER = 1;
+
+    private static final int PORT_HALL_SENSOR = 0;
     private static final int PORT_JOYSTICK = 0;
     private static final int PORT_XBOX = 1;
 
@@ -33,7 +35,7 @@ public class Robot extends IterativeRobot {
     private static final double JOYSTICK_SCALE_FLAT = 0.7;
     private static final double JOYSTICK_SCALE_POWER = 1;
     private static final double JOYSTICK_DEADZONE_PID = 0.2;
-    private static final String DRIVER_CONTROL_TYPE = "VERSION_1";
+    private static final String DRIVER_CONTROL_TYPE = "Xbox";
 
     // Camera Constants
     private static final double CAMERA_RESOLUTION_Y = 480;
@@ -43,7 +45,6 @@ public class Robot extends IterativeRobot {
     private static final double HORIZONTAL_FOV = 67;
     private static final double CAMERA_ANGLE = 13;
     private static final double TOP_CAMERA_HEIGHT = 14;
-    private static final double SPEED_SHOOTER_KICKER_REST = -0.2;
 
     // Axes
     private static int AXIS_MOVE = 1;
@@ -58,17 +59,13 @@ public class Robot extends IterativeRobot {
     private static final double KP_LIFT = 0;
     private static final double KI_LIFT = 0;
     private static final double KD_LIFT = 0;
-    private static final double SETPOINT_LIFT_REST = 0;
 
     //Shooter Constants
     private static final double SPEED_SHOOTER_WHEEL_LEFT = 1;
     private static final double SPEED_SHOOTER_WHEEL_RIGHT = 1;
 
-    private static final double ANGLE_LIFT_REST = 28;
-    private static final double TOLERANCE_PID_POT = 0.1;
-//    private static final double OFFSET_SHOOTER = 0.17;
-    private static final double ANGLE_LIFT_INCREMENT = 0.5;
-    private static final double ANGLE_LIFT_DECREMENT = 0.5;
+    private static final double TOLERANCE_LIFT = 5;
+    private static final double ANGLE_LIFT_INCREMENT = 50;
     private static final double SPEED_SHOOTER_KICKER_OUT = 1;
     private static final double SPEED_SHOOTER_KICKER_IN = 0.3;
 
@@ -126,8 +123,9 @@ public class Robot extends IterativeRobot {
         shooterWheelRight = new VictorSP(PORT_SHOOTER_RIGHT);
 
         shooterLift = new CANTalon(PORT_SHOOTER_LIFT);
-        shooterLiftPID = new PIDController(KP_LIFT, KI_LIFT, KD_LIFT, thisShit, output -> {});
-        liftLimit = new DigitalInput(0);
+        shooterLiftPID = new PIDController(KP_LIFT, KI_LIFT, KD_LIFT, shooterLift, shooterLift);
+        shooterLiftPID.setAbsoluteTolerance(TOLERANCE_LIFT);
+        liftLimit = new DigitalInput(PORT_HALL_SENSOR);
 
         shooterKicker = new CANTalon(PORT_SHOOTER_KICKER);
 
@@ -182,9 +180,13 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void teleopInit() {
-
         // Just in case...
         thisPIDController.disable();
+
+        while (liftLimit.get()) {
+            shooterLift.set(-0.5);
+        }
+        shooterLift.setEncPosition(0);
 
         weatherStatus = CalibMath.answerQuestion();
 
@@ -193,7 +195,6 @@ public class Robot extends IterativeRobot {
     }
 
     boolean triggerPressed; //so lonely
-
     @Override
     public void teleopPeriodic() {
 
@@ -213,11 +214,11 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Pressure", thisShit.getBarometricPressure());
         SmartDashboard2.put("Will it rain?", weatherStatus);
 
+        SmartDashboard2.put("IMU", thisShit);
        // SmartDashboard2.put("goodToGo", isShooterAimed);
-        SmartDashboard2.put("accel", thisShit);
 
         double[] temp = getStuff();
-        if (temp != null) {
+        if (temp.length == 2) {
             SmartDashboard2.put("distance", temp[0]);
             SmartDashboard2.put("azimuth", temp[1]);
         }
@@ -225,24 +226,28 @@ public class Robot extends IterativeRobot {
 
     private void moveStraight(double distance, double speed) {
         // TODO: Test this
+        thisPIDController.enable();
         while (thisShit.getMagX() < distance) {
             thisPIDController.setSetpoint(thisShit.getAngle());
             drive.arcadeDrive(speed, thisPIDController.get());
         }
+        thisPIDController.disable();
     }
 
     private void moveTurnways(double angle) {
         //TODO: Test this
+        thisPIDController.enable();
         double initialAngle = thisShit.getAngle();
         double finalAngle = initialAngle + angle;
         while (finalAngle < 0 || finalAngle > 360) finalAngle += finalAngle < 0 ? 360 : finalAngle > 360 ? -360 : 0;
         thisPIDController.setSetpoint(finalAngle);
         drive.arcadeDrive(0, thisPIDController.get());
+        thisPIDController.disable();
     }
 
     private void setControlType(String driverControlType) {
         switch (driverControlType) {
-            case "VERSION_1":
+            case "JoystickOnly":
                 buttonPidEnable = new JoystickButton(joystick, 4);
                 buttonGyroReset = new JoystickButton(joystick, 6);
 
@@ -255,7 +260,7 @@ public class Robot extends IterativeRobot {
                 buttonShooterKickOut = new Button2(joystick, POVDirection.UP);
                 buttonShooterKickIn = new Button2(joystick, POVDirection.DOWN);
                 break;
-            case "VERSION_2":
+            default:
                 buttonPidEnable = new JoystickButton(joystick, 4);
                 buttonGyroReset = new JoystickButton(joystick, 6);
 
@@ -268,8 +273,6 @@ public class Robot extends IterativeRobot {
                 buttonShooterKickIn = new JoystickButton(xbox, Xbox.Button.X.ordinal());
                 buttonShooterKickOut = new JoystickButton(xbox, Xbox.Button.Y.ordinal());
                 break;
-            case "VERSION_3":
-                break;
         }
     }
 
@@ -279,8 +282,6 @@ public class Robot extends IterativeRobot {
         double twistVal = SmartDashboard2.put("twistVal", joystick.getRawAxis(AXIS_ROTATE));
         double throttleVal = SmartDashboard2.put("throttleVal",
                                                  CalibMath.throttleMath(-joystick.getRawAxis(AXIS_THROTTLE)));
-
-        if (SmartDashboard2.get("isXbox", false)) throttleVal = 1;
 
         double rotateVal = SmartDashboard2.put("rotateVal", CalibMath.scaleDoubleFlat(twistVal,
                                                                                  SmartDashboard2.get("joystickDeadzone", JOYSTICK_DEADZONE),
@@ -326,23 +327,21 @@ public class Robot extends IterativeRobot {
         double liftSetpoint = SmartDashboard2.get("liftSetpoint", 0);
         // Check button values
         if (buttonShooterLiftUp.get()) {
-            liftSetpoint++;
-            SmartDashboard2.put("liftSetpoint", liftSetpoint);
+            SmartDashboard2.put("liftSetpoint", liftSetpoint + ANGLE_LIFT_INCREMENT);
         } else if (buttonShooterLiftDown.get() && liftLimit.get()) {
-            liftSetpoint--;
-            SmartDashboard2.put("liftSetpoint", liftSetpoint);
+            SmartDashboard2.put("liftSetpoint", liftSetpoint - ANGLE_LIFT_INCREMENT);
         }
         // Not else if because should reset while holding above buttons
-        if (resetLift.get()) SmartDashboard2.put("liftSetpoint", SETPOINT_LIFT_REST);
+        if (resetLift.get()) SmartDashboard2.put("liftSetpoint", 0);
 
         // Liftlimit should enable/disable PID
         if (liftLimit.get()) {
-            if (!shooterLift.isEnabled()) shooterLift.enable();
+            if (!shooterLiftPID.isEnabled()) shooterLiftPID.enable();
         } else {
-            shooterLift.disable();
+            shooterLiftPID.disable();
         }
         // Actually adjust the setpoint
-        shooterLift.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
+        shooterLiftPID.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
     }
 
     public void shootAndIntake() {
@@ -363,7 +362,7 @@ public class Robot extends IterativeRobot {
         }
         if (buttonShooterKickOut.get()) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
         else if (buttonShooterKickIn.get()) shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
-        else shooterKicker.set(SPEED_SHOOTER_KICKER_REST);
+        else shooterKicker.set(0);
     }
 
     public double[] getStuff(){
