@@ -33,7 +33,6 @@ public class Robot extends IterativeRobot {
     private static final double JOYSTICK_SCALE_FLAT = 0.7;
     private static final double JOYSTICK_SCALE_POWER = 1;
     private static final double JOYSTICK_DEADZONE_PID = 0.2;
-    private static final double DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE = 0.3;
     private static final String DRIVER_CONTROL_TYPE = "VERSION_1";
 
     // Camera Constants
@@ -46,26 +45,20 @@ public class Robot extends IterativeRobot {
     private static final double TOP_CAMERA_HEIGHT = 14;
     private static final double SPEED_SHOOTER_KICKER_REST = -0.2;
 
-
     // Axes
     private static int AXIS_MOVE = 1;
     private static int AXIS_ROTATE = 2;
     private static int AXIS_THROTTLE = 3;
 
     //PID Constants
-    private static final double KP_POT = 0.002;
-    private static final double KI_POT = 0.001;
-    private static final double KD_POT = 0.001;
-
     private static final double KP_THIS_SHIT = 0;
     private static final double KD_THIS_SHIT = 0;
     private static final double TOLERANCE_THIS_SHIT = 0.1;
 
-    private static final double KP_THAT_SHIT = 0.1;
-    private static final double KD_THAT_SHIT = 0.1;
-
-    public static final double KP_THE_OTHER_SHIT = 0.05;
-    public static final double KD_THE_OTHER_SHIT = 0.1;
+    private static final double KP_LIFT = 0;
+    private static final double KI_LIFT = 0;
+    private static final double KD_LIFT = 0;
+    private static final double SETPOINT_LIFT_REST = 0;
 
     //Shooter Constants
     private static final double SPEED_SHOOTER_WHEEL_LEFT = 1;
@@ -79,16 +72,16 @@ public class Robot extends IterativeRobot {
     private static final double SPEED_SHOOTER_KICKER_OUT = 1;
     private static final double SPEED_SHOOTER_KICKER_IN = 0.3;
 
-
     private RobotDrive drive;
 
     private VictorSP shooterWheelLeft;
     private VictorSP shooterWheelRight;
 
     private CANTalon shooterLift;
+    private PIDController shooterLiftPID;
+    private DigitalInput liftLimit;
 
     private CANTalon shooterKicker;
-    private DigitalInput liftLimit;
 
     private Joystick joystick;
     private Xbox xbox;
@@ -108,16 +101,7 @@ public class Robot extends IterativeRobot {
 
     private ADIS16448_IMU thisShit;
     private PIDController thisPIDController;
-    
     private String weatherStatus;
-
-    private AnalogPotentiometer pot;
-
-    //private double thisAdjustment;
-    private double thatAdjustment;
-    private double theOtherAdjustment;
-    private PIDController potPID;
-    private double targetAngle;
 
     private AxisCamera camera;
 
@@ -140,14 +124,12 @@ public class Robot extends IterativeRobot {
 
         shooterWheelLeft = new VictorSP(PORT_SHOOTER_LEFT);
         shooterWheelRight = new VictorSP(PORT_SHOOTER_RIGHT);
+
         shooterLift = new CANTalon(PORT_SHOOTER_LIFT);
-        shooterKicker = new CANTalon(PORT_SHOOTER_KICKER);
+        shooterLiftPID = new PIDController(KP_LIFT, KI_LIFT, KD_LIFT, thisShit, output -> {});
         liftLimit = new DigitalInput(0);
 
-        pot = new AnalogPotentiometer(1,5000); // Range: 1950-4560
-        potPID = new PIDController(KP_POT, KI_POT, KD_POT, pot, shooterLift);
-        potPID.setPercentTolerance(TOLERANCE_PID_POT);
-        potPID.enable();
+        shooterKicker = new CANTalon(PORT_SHOOTER_KICKER);
 
         joystick = new Joystick(PORT_JOYSTICK);
         xbox = new Xbox(PORT_XBOX);
@@ -208,8 +190,6 @@ public class Robot extends IterativeRobot {
 
         // Drive Controls
         setControlType(SmartDashboard2.get("driverControlType", DRIVER_CONTROL_TYPE));
-
-        targetAngle = SmartDashboard2.put("targetAngle", ANGLE_LIFT_REST);
     }
 
     boolean triggerPressed; //so lonely
@@ -227,7 +207,6 @@ public class Robot extends IterativeRobot {
         // Debug
         // Drive values
         SmartDashboard2.put("derp", CalibMath.adjustedDeadband(joystick.getX(),0.3)); //save "derp" to dictionary
-        SmartDashboard2.put("angle", (pot.get() - 1950) / 17.4);
 
         //Weather
         SmartDashboard2.put("Temperature", thisShit.getTemperature());
@@ -235,9 +214,7 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Will it rain?", weatherStatus);
 
        // SmartDashboard2.put("goodToGo", isShooterAimed);
-        SmartDashboard2.put("distanceTraveledX", thisShit.getMagX());
-        SmartDashboard2.put("distanceTraveledY", thisShit.getMagY());
-        SmartDashboard2.put("distanceTraveledZ", thisShit.getMagZ());
+        SmartDashboard2.put("accel", thisShit);
 
         double[] temp = getStuff();
         if (temp != null) {
@@ -246,14 +223,21 @@ public class Robot extends IterativeRobot {
         }
     }
 
-    private void moveDistance(double distance) {
-        double kP = SmartDashboard2.put("movement_kP", 0);
-        double kI = SmartDashboard2.put("movement_kI", 0);
-        double kD = SmartDashboard2.put("movement_kD", 0);
-        // TODO: PID Stuff
-        PIDSource2 acceleromter = new PIDSource2(thisShit.getMagX());
-        PIDController accelPID = new PIDController(kP, kI, kD, acceleromter, output -> {});
-        drive.drive(accelPID.get(), 0);
+    private void moveStraight(double distance, double speed) {
+        // TODO: Test this
+        while (thisShit.getMagX() < distance) {
+            thisPIDController.setSetpoint(thisShit.getAngle());
+            drive.arcadeDrive(speed, thisPIDController.get());
+        }
+    }
+
+    private void moveTurnways(double angle) {
+        //TODO: Test this
+        double initialAngle = thisShit.getAngle();
+        double finalAngle = initialAngle + angle;
+        while (finalAngle < 0 || finalAngle > 360) finalAngle += finalAngle < 0 ? 360 : finalAngle > 360 ? -360 : 0;
+        thisPIDController.setSetpoint(finalAngle);
+        drive.arcadeDrive(0, thisPIDController.get());
     }
 
     private void setControlType(String driverControlType) {
@@ -309,78 +293,56 @@ public class Robot extends IterativeRobot {
         double thisRadians = thisShit.getAngle();
         double thisDegrees = Math.toDegrees(thisRadians);
 
-        double throttledRotate = SmartDashboard2.put("throttledRotate",
-                                                     CalibMath.inverseAdjustedDeadband(throttleVal,0.5) * rotateVal
-                                                     + pidAdjustDrive(thisPIDController, thisDegrees, rotateVal));
-        drive.arcadeDrive(throttledMove, throttledRotate);
-    }
+        // Update setpoint if turning
+        if (thisPIDController.isEnabled() && Math.abs(rotateVal) > JOYSTICK_DEADZONE_PID) thisPIDController.setSetpoint(thisDegrees);
 
-    private double pidAdjustDrive(PIDController pidController, double setpoint, double rotateVal) {
         // PID values
         SmartDashboard2.put("thisPIDController", thisPIDController);
 
         // PID Enable/Disable
         if (buttonPidEnable.get() && !triggerPressed) {
-            pidController.setSetpoint(setpoint);
+            thisPIDController.setSetpoint(thisDegrees);
             triggerPressed = true;
         }
-        if (buttonPidEnable.get()){
-            pidController.enable();
+        if (buttonPidEnable.get()) {
+            if (thisPIDController.isEnabled()) thisPIDController.enable();
         } else {
-            pidController.disable();
+            thisPIDController.disable();
             triggerPressed = false;
         }
 
-        // PID Control
-        if (pidController.isEnabled()){
-            if (Math.abs(rotateVal) > JOYSTICK_DEADZONE_PID) {
-                pidController.setSetpoint(setpoint);
-                return rotateVal + pidController.get();
-            } else {
-                return pidController.get();
-            }
-        }
-        return 0;
+        double throttledRotate = SmartDashboard2.put("throttledRotate", thisPIDController.get());
+        drive.arcadeDrive(throttledMove, throttledRotate);
     }
 
     public void liftShooter() {
         // Put sensors on SmartDashboard
         SmartDashboard2.put("Hall", liftLimit);
-        SmartDashboard2.put("pot", pot);
-        SmartDashboard2.put("PotPID", potPID);
 
-        // Set target angle to SmartDashboard if in range
-        if ((pot.get() - 1950) / 17.4 < 420 - 300) {
-            if (buttonShooterLiftUp.get()) {
-                targetAngle += ANGLE_LIFT_INCREMENT;
-                SmartDashboard2.put("targetAngle", targetAngle);
-            } else if (buttonShooterLiftDown.get()) {
-                if (liftLimit.get()) {
-                    targetAngle -= ANGLE_LIFT_DECREMENT;
-                    SmartDashboard2.put("targetAngle", targetAngle);
-                }
-            }
+        // Encoder Control
+        // Put shooterLift PID control values to SmartDashboard
+        SmartDashboard2.put("liftMotor", shooterLift);
+        // Create setpoint variable from SmartDashboard value
+        double liftSetpoint = SmartDashboard2.get("liftSetpoint", 0);
+        // Check button values
+        if (buttonShooterLiftUp.get()) {
+            liftSetpoint++;
+            SmartDashboard2.put("liftSetpoint", liftSetpoint);
+        } else if (buttonShooterLiftDown.get() && liftLimit.get()) {
+            liftSetpoint--;
+            SmartDashboard2.put("liftSetpoint", liftSetpoint);
         }
-        if (resetLift.get()) SmartDashboard2.put("targetAngle", ANGLE_LIFT_REST);
+        // Not else if because should reset while holding above buttons
+        if (resetLift.get()) SmartDashboard2.put("liftSetpoint", SETPOINT_LIFT_REST);
 
-        // Get angle from SmartDashboard and set setpoint
-        targetAngle = SmartDashboard2.get("targetAngle", targetAngle);
-        potPID.setSetpoint(targetAngle * 17.4 + 1950);
-
-        if (Math.abs(SmartDashboard2.get("throttledMove", 0)) > 0.2 || SmartDashboard2.get("targetAngle", 110) > 110
-            || !liftLimit.get()) {
-            potPID.disable();
+        // Liftlimit should enable/disable PID
+        if (liftLimit.get()) {
+            if (!shooterLift.isEnabled()) shooterLift.enable();
         } else {
-            potPID.enable();
+            shooterLift.disable();
         }
-
-        // Set lift direction
-        int liftDirection = buttonShooterLiftUp.get() ? 1 : buttonShooterLiftDown.get() && liftLimit.get() ? -1 : 0;
-
-        // Manual control based on lift direction
-        if(!potPID.isEnabled()){
-            shooterLift.set(DISABLEDPIDLIFTSPEEDMULTIPLIERCALLMEKYLE * liftDirection);
-        }
+        // Actually adjust the setpoint
+        shooterLift.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
     }
 
     public void shootAndIntake() {
