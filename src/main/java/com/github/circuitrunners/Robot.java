@@ -347,7 +347,7 @@ public class Robot extends IterativeRobot {
     public void shootAndIntake() {
         double shooterLeftWheelSpeed = SmartDashboard2.get("leftWheelSpeed", SPEED_SHOOTER_WHEEL_LEFT);
         double shooterRightWheelSpeed = SmartDashboard2.get("rightWheelSpeed", SPEED_SHOOTER_WHEEL_RIGHT);
-        // Shooter Wheels
+        // Shooter Wheels spin
         if (buttonShooterWheelspinIn.get()) {
             shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
             shooterWheelLeft.set(shooterLeftWheelSpeed);
@@ -355,16 +355,20 @@ public class Robot extends IterativeRobot {
         } else if (buttonShooterWheelspinOut.get()) {
             shooterWheelLeft.set(-shooterLeftWheelSpeed);
             shooterWheelRight.set(shooterRightWheelSpeed);
+            // Inside if to prevent accidental shot
+            if (buttonShooterKickOut.get()) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
         } else {
             shooterWheelLeft.set(0);
             shooterWheelRight.set(0);
             shooterKicker.set(0);
         }
-        if (buttonShooterKickOut.get()) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
-        else if (buttonShooterKickIn.get()) shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
+
+        // Kicker wheel spin
+        if (buttonShooterKickIn.get()) shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
         else shooterKicker.set(0);
     }
 
+    // Camera stuff bleh
     public double[] getStuff(){
         try {
             final ITable table = grip.getSubTable("contours");
