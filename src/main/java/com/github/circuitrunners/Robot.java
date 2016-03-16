@@ -54,12 +54,6 @@ public class Robot extends IterativeRobot {
     private static final double KD_THIS_SHIT = 0;
     private static final double TOLERANCE_THIS_SHIT = 0.1;
 
-    private static final double KP_THAT_SHIT = 0.1;
-    private static final double KD_THAT_SHIT = 0.1;
-
-    public static final double KP_THE_OTHER_SHIT = 0.05;
-    public static final double KD_THE_OTHER_SHIT = 0.1;
-
     private static final double KP_LIFT = 0;
     private static final double KI_LIFT = 0;
     private static final double KD_LIFT = 0;
@@ -77,16 +71,16 @@ public class Robot extends IterativeRobot {
     private static final double SPEED_SHOOTER_KICKER_OUT = 1;
     private static final double SPEED_SHOOTER_KICKER_IN = 0.3;
 
-
     private RobotDrive drive;
 
     private VictorSP shooterWheelLeft;
     private VictorSP shooterWheelRight;
 
     private CANTalon shooterLift;
+    private PIDController shooterLiftPID;
+    private DigitalInput liftLimit;
 
     private CANTalon shooterKicker;
-    private DigitalInput liftLimit;
 
     private Joystick joystick;
     private Xbox xbox;
@@ -130,8 +124,7 @@ public class Robot extends IterativeRobot {
         shooterWheelRight = new VictorSP(PORT_SHOOTER_RIGHT);
 
         shooterLift = new CANTalon(PORT_SHOOTER_LIFT);
-        shooterLift.setPID(KP_LIFT, KI_LIFT, KD_LIFT);
-        shooterLift.changeControlMode(CANTalon.TalonControlMode.Position);
+        shooterLiftPID = new PIDController(KP_LIFT, KI_LIFT, KD_LIFT, thisShit, output -> {});
         liftLimit = new DigitalInput(0);
 
         shooterKicker = new CANTalon(PORT_SHOOTER_KICKER);
@@ -214,7 +207,6 @@ public class Robot extends IterativeRobot {
         // Debug
         // Drive values
         SmartDashboard2.put("derp", CalibMath.adjustedDeadband(joystick.getX(),0.3)); //save "derp" to dictionary
-        SmartDashboard2.put("angle", (pot.get() - 1950) / 17.4);
 
         //Weather
         SmartDashboard2.put("Temperature", thisShit.getTemperature());
@@ -222,9 +214,7 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("Will it rain?", weatherStatus);
 
        // SmartDashboard2.put("goodToGo", isShooterAimed);
-        SmartDashboard2.put("distanceTraveledX", thisShit.getMagX());
-        SmartDashboard2.put("distanceTraveledY", thisShit.getMagY());
-        SmartDashboard2.put("distanceTraveledZ", thisShit.getMagZ());
+        SmartDashboard2.put("accel", thisShit);
 
         double[] temp = getStuff();
         if (temp != null) {
@@ -233,14 +223,21 @@ public class Robot extends IterativeRobot {
         }
     }
 
-    private void moveDistance(double distance) {
-        double kP = SmartDashboard2.put("movement_kP", 0);
-        double kI = SmartDashboard2.put("movement_kI", 0);
-        double kD = SmartDashboard2.put("movement_kD", 0);
-        // TODO: PID Stuff
-        PIDSource2 acceleromter = new PIDSource2(thisShit.getMagX());
-        PIDController accelPID = new PIDController(kP, kI, kD, acceleromter, output -> {});
-        drive.drive(accelPID.get(), 0);
+    private void moveStraight(double distance, double speed) {
+        // TODO: Test this
+        while (thisShit.getMagX() < distance) {
+            thisPIDController.setSetpoint(thisShit.getAngle());
+            drive.arcadeDrive(speed, thisPIDController.get());
+        }
+    }
+
+    private void moveTurnways(double angle) {
+        //TODO: Test this
+        double initialAngle = thisShit.getAngle();
+        double finalAngle = initialAngle + angle;
+        while (finalAngle < 0 || finalAngle > 360) finalAngle += finalAngle < 0 ? 360 : finalAngle > 360 ? -360 : 0;
+        thisPIDController.setSetpoint(finalAngle);
+        drive.arcadeDrive(0, thisPIDController.get());
     }
 
     private void setControlType(String driverControlType) {
@@ -293,38 +290,27 @@ public class Robot extends IterativeRobot {
         // Gyro values
         double thisRadians = thisShit.getAngle();
         double thisDegrees = Math.toDegrees(thisRadians);
-        double throttledRotate = SmartDashboard2.put("throttledRotate",
-                                                     CalibMath.inverseAdjustedDeadband(throttleVal,0.5) * rotateVal
-                                                     + pidAdjustDrive(thisPIDController, thisDegrees, rotateVal));
-        drive.arcadeDrive(throttledMove, throttledRotate);
-    }
 
-    private double pidAdjustDrive(PIDController pidController, double setpoint, double rotateVal) {
+        // Update setpoint if turning
+        if (thisPIDController.isEnabled() && Math.abs(rotateVal) > JOYSTICK_DEADZONE_PID) thisPIDController.setSetpoint(thisDegrees);
+
         // PID values
         SmartDashboard2.put("thisPIDController", thisPIDController);
 
         // PID Enable/Disable
         if (buttonPidEnable.get() && !triggerPressed) {
-            pidController.setSetpoint(setpoint);
+            thisPIDController.setSetpoint(thisDegrees);
             triggerPressed = true;
         }
-        if (buttonPidEnable.get()){
-            pidController.enable();
+        if (buttonPidEnable.get()) {
+            if (thisPIDController.isEnabled()) thisPIDController.enable();
         } else {
-            pidController.disable();
+            thisPIDController.disable();
             triggerPressed = false;
         }
 
-        // PID Control
-        if (pidController.isEnabled()){
-            if (Math.abs(rotateVal) > JOYSTICK_DEADZONE_PID) {
-                pidController.setSetpoint(setpoint);
-                return rotateVal + pidController.get();
-            } else {
-                return pidController.get();
-            }
-        }
-        return 0;
+        double throttledRotate = SmartDashboard2.put("throttledRotate", thisPIDController.get());
+        drive.arcadeDrive(throttledMove, throttledRotate);
     }
 
     public void liftShooter() {
