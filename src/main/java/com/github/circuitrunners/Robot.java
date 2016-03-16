@@ -183,7 +183,7 @@ public class Robot extends IterativeRobot {
         // Just in case...
         thisPIDController.disable();
 
-        while (liftLimit.get()) {
+        while (!liftLimit.get()) {
             shooterLift.set(-0.5);
         }
         shooterLift.setEncPosition(0);
@@ -264,14 +264,14 @@ public class Robot extends IterativeRobot {
                 buttonPidEnable = new JoystickButton(joystick, 4);
                 buttonGyroReset = new JoystickButton(joystick, 6);
 
-                buttonShooterLiftDown = new XboxButton(xbox, Xbox.Button.A);
-                buttonShooterLiftUp = new XboxButton(xbox, Xbox.Button.B);
-                resetLift = new XboxButton(xbox, Xbox.Button.BACK);
+                buttonShooterLiftDown = new JoystickButton(xbox, 1);
+                buttonShooterLiftUp = new JoystickButton(xbox, 2);
+                resetLift = new JoystickButton(xbox, 4);
 
-                buttonShooterWheelspinOut = new XboxButton(xbox, Xbox.Button.RIGHT_BUMPER);
+                buttonShooterWheelspinOut = new JoystickButton(xbox, 6);
                 buttonShooterWheelspinIn = new JoystickButton(joystick, 1);
-                buttonShooterKickIn = new JoystickButton(xbox, Xbox.Button.X.ordinal());
-                buttonShooterKickOut = new JoystickButton(xbox, Xbox.Button.Y.ordinal());
+                buttonShooterKickIn = new JoystickButton(joystick, 2);
+                buttonShooterKickOut = new JoystickButton(xbox, 8);
                 break;
         }
     }
