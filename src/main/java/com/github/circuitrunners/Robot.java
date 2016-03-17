@@ -23,8 +23,8 @@ public class Robot extends IterativeRobot {
     
     private static final int PORT_SHOOTER_LEFT = 4;
     private static final int PORT_SHOOTER_RIGHT = 5;
-    private static final int PORT_SHOOTER_LIFT = 0;
-    private static final int PORT_SHOOTER_KICKER = 1;
+    private static final int PORT_SHOOTER_LIFT = 1;
+    private static final int PORT_SHOOTER_KICKER = 2;
 
     private static final int PORT_HALL_SENSOR = 0;
     private static final int PORT_JOYSTICK = 0;
@@ -56,7 +56,7 @@ public class Robot extends IterativeRobot {
     private static final double KD_THIS_SHIT = 0;
     private static final double TOLERANCE_THIS_SHIT = 0.1;
 
-    private static final double KP_LIFT = 0;
+    private static final double KP_LIFT = -0.001;
     private static final double KI_LIFT = 0;
     private static final double KD_LIFT = 0;
 
@@ -100,6 +100,9 @@ public class Robot extends IterativeRobot {
     private PIDController thisPIDController;
     private String weatherStatus;
 
+    private DigitalInput switch1;
+    private DigitalInput switch2;
+
     private AxisCamera camera;
 
     private final NetworkTable grip = NetworkTable.getTable("GRIP");
@@ -136,6 +139,9 @@ public class Robot extends IterativeRobot {
         thisShit.calibrate();
         thisPIDController = new PIDController(KP_THIS_SHIT, 0, KD_THIS_SHIT, thisShit, output -> {});
         thisPIDController.setPercentTolerance(TOLERANCE_THIS_SHIT);
+
+        switch1 = new DigitalInput(1);
+        switch2 = new DigitalInput(2);
 
         camera = new AxisCamera("10.10.2.11");
     }
@@ -184,7 +190,7 @@ public class Robot extends IterativeRobot {
         thisPIDController.disable();
 
         while (!liftLimit.get()) {
-            shooterLift.set(-0.5);
+            shooterLift.set(0.25);
         }
         shooterLift.setEncPosition(0);
 
@@ -197,6 +203,9 @@ public class Robot extends IterativeRobot {
     boolean triggerPressed; //so lonely
     @Override
     public void teleopPeriodic() {
+
+        SmartDashboard2.put("switch1", switch1.get());
+        SmartDashboard2.put("switch2", switch2.get());
 
         drive();
         liftShooter();
@@ -268,20 +277,20 @@ public class Robot extends IterativeRobot {
                 buttonShooterLiftUp = new JoystickButton(xbox, 2);
                 resetLift = new JoystickButton(xbox, 4);
 
-                buttonShooterWheelspinOut = new JoystickButton(xbox, 6);
+                buttonShooterWheelspinOut = new JoystickButton(xbox, 5);
                 buttonShooterWheelspinIn = new JoystickButton(joystick, 1);
                 buttonShooterKickIn = new JoystickButton(joystick, 2);
-                buttonShooterKickOut = new JoystickButton(xbox, 8);
+                buttonShooterKickOut = new JoystickButton(xbox, 6);
                 break;
         }
     }
 
     private void drive() {
         // Drive values
-        double moveVal = SmartDashboard2.put("moveVal", joystick.getRawAxis(AXIS_MOVE));
-        double twistVal = SmartDashboard2.put("twistVal", joystick.getRawAxis(AXIS_ROTATE));
+        double moveVal = SmartDashboard2.put("moveVal", joystick.getY());
+        double twistVal = SmartDashboard2.put("twistVal", joystick.getTwist());
         double throttleVal = SmartDashboard2.put("throttleVal",
-                                                 CalibMath.throttleMath(-joystick.getRawAxis(AXIS_THROTTLE)));
+                                                 CalibMath.throttleMath(-joystick.getThrottle()));
 
         double rotateVal = SmartDashboard2.put("rotateVal", CalibMath.scaleDoubleFlat(twistVal,
                                                                                  SmartDashboard2.get("joystickDeadzone", JOYSTICK_DEADZONE),
@@ -312,7 +321,8 @@ public class Robot extends IterativeRobot {
             triggerPressed = false;
         }
 
-        double throttledRotate = SmartDashboard2.put("throttledRotate", thisPIDController.get());
+        double throttledRotate = SmartDashboard2.put("throttledRotate", CalibMath.inverseAdjustedDeadband(throttleVal, 0.5) * rotateVal
+                                                    + thisPIDController.get());
         drive.arcadeDrive(throttledMove, throttledRotate);
     }
 
@@ -342,6 +352,8 @@ public class Robot extends IterativeRobot {
         }
         // Actually adjust the setpoint
         shooterLiftPID.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
+        SmartDashboard2.put("shooterLiftPosition", shooterLift.getEncPosition());
+        SmartDashboard2.put("shooterLiftPID", shooterLiftPID);
     }
 
     public void shootAndIntake() {
@@ -349,14 +361,12 @@ public class Robot extends IterativeRobot {
         double shooterRightWheelSpeed = SmartDashboard2.get("rightWheelSpeed", SPEED_SHOOTER_WHEEL_RIGHT);
         // Shooter Wheels spin
         if (buttonShooterWheelspinIn.get()) {
-            shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
+            shooterKicker.set(-SPEED_SHOOTER_KICKER_IN);
             shooterWheelLeft.set(shooterLeftWheelSpeed);
             shooterWheelRight.set(-shooterRightWheelSpeed);
         } else if (buttonShooterWheelspinOut.get()) {
             shooterWheelLeft.set(-shooterLeftWheelSpeed);
             shooterWheelRight.set(shooterRightWheelSpeed);
-            // Inside if to prevent accidental shot
-            if (buttonShooterKickOut.get()) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
         } else {
             shooterWheelLeft.set(0);
             shooterWheelRight.set(0);
@@ -364,7 +374,8 @@ public class Robot extends IterativeRobot {
         }
 
         // Kicker wheel spin
-        if (buttonShooterKickIn.get()) shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
+        if (buttonShooterKickOut.get()) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
+        else if (buttonShooterKickIn.get()) shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
         else shooterKicker.set(0);
     }
 
