@@ -12,6 +12,7 @@ import edu.wpi.first.wpilibj.vision.AxisCamera;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
 public class Robot extends IterativeRobot {
 
@@ -89,6 +90,8 @@ public class Robot extends IterativeRobot {
 
     private Button buttonShooterLiftDown;
     private Button buttonShooterLiftUp;
+    private Button buttonDisableLimit;
+    private Button buttonEnableLimit;
     private Button resetLift;
 
     private Button buttonShooterWheelspinOut;
@@ -109,6 +112,7 @@ public class Robot extends IterativeRobot {
 
     private ExecutorService sequentialExecutor = Executors.newSingleThreadExecutor();
     private ExecutorService parallelExecutor = Executors.newCachedThreadPool();
+    private ScheduledExecutorService repeatedExecutor = Executors.newSingleThreadScheduledExecutor();
 
     @Override
     public void robotInit() {
@@ -148,8 +152,18 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void autonomousInit() {
-        sequentialExecutor.execute(new AutonomousDriveThread(1, 0, 1000));
-        sequentialExecutor.execute(new AutonomousDriveThread(-1, 0, 1000));
+        double last = Timer.getFPGATimestamp();
+        double curr;
+        double diff = 0;
+        while (diff < 1000 && liftLimit.get()) {
+            shooterLift.set(0.75);
+            curr = Timer.getFPGATimestamp();
+            diff = curr - last;
+        }
+        shooterLift.set(0);
+        shooterLift.setEncPosition(0);
+        // TODO: Add switch for direction
+        sequentialExecutor.execute(new AutonomousDriveThread(0.625, 0, 5000));
     }
 
     private class AutonomousDriveThread implements Runnable {
@@ -173,6 +187,7 @@ public class Robot extends IterativeRobot {
             if (waitTime > 0) {
                 try {
                     Thread.sleep(waitTime);
+                    drive.arcadeDrive(-0  ,  0); //hoot hoot bitch
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -189,11 +204,11 @@ public class Robot extends IterativeRobot {
         // Just in case...
         thisPIDController.disable();
 
-        while (!liftLimit.get()) {
-            shooterLift.set(0.25);
+        while (liftLimit.get()) {
+            shooterLift.set(0.5);
         }
         shooterLift.setEncPosition(0);
-
+shooterLiftPID.disable();
         weatherStatus = CalibMath.answerQuestion();
 
         // Drive Controls
@@ -201,6 +216,8 @@ public class Robot extends IterativeRobot {
     }
 
     boolean triggerPressed; //so lonely
+    boolean liftSwitchEnabled = true;
+
     @Override
     public void teleopPeriodic() {
 
@@ -275,6 +292,8 @@ public class Robot extends IterativeRobot {
 
                 buttonShooterLiftDown = new JoystickButton(xbox, 1);
                 buttonShooterLiftUp = new JoystickButton(xbox, 2);
+                buttonDisableLimit = new JoystickButton(xbox, 7);
+                buttonEnableLimit = new JoystickButton(xbox, 8);
                 resetLift = new JoystickButton(xbox, 4);
 
                 buttonShooterWheelspinOut = new JoystickButton(xbox, 5);
@@ -290,7 +309,7 @@ public class Robot extends IterativeRobot {
         double moveVal = SmartDashboard2.put("moveVal", joystick.getY());
         double twistVal = SmartDashboard2.put("twistVal", joystick.getTwist());
         double throttleVal = SmartDashboard2.put("throttleVal",
-                                                 CalibMath.throttleMath(-joystick.getThrottle()));
+                                                 CalibMath.throttleMath(joystick.getThrottle()));
 
         double rotateVal = SmartDashboard2.put("rotateVal", CalibMath.scaleDoubleFlat(twistVal,
                                                                                  SmartDashboard2.get("joystickDeadzone", JOYSTICK_DEADZONE),
@@ -336,22 +355,32 @@ public class Robot extends IterativeRobot {
         // Create setpoint variable from SmartDashboard value
         double liftSetpoint = SmartDashboard2.get("liftSetpoint", 0);
         // Check button values
-        if (buttonShooterLiftUp.get()) {
-            SmartDashboard2.put("liftSetpoint", liftSetpoint + ANGLE_LIFT_INCREMENT);
-        } else if (buttonShooterLiftDown.get() && liftLimit.get()) {
-            SmartDashboard2.put("liftSetpoint", liftSetpoint - ANGLE_LIFT_INCREMENT);
-        }
-        // Not else if because should reset while holding above buttons
-        if (resetLift.get()) SmartDashboard2.put("liftSetpoint", 0);
+        if(buttonEnableLimit.get()) liftSwitchEnabled = true;
+        if(buttonDisableLimit.get()) liftSwitchEnabled = false;
+        if(liftSwitchEnabled) { //If limit switch doesnt break
+            if (buttonShooterLiftUp.get()) {
+                SmartDashboard2.put("liftSetpoint", liftSetpoint + ANGLE_LIFT_INCREMENT);
+            } else if (buttonShooterLiftDown.get() && liftLimit.get()) {
+                SmartDashboard2.put("liftSetpoint", liftSetpoint - ANGLE_LIFT_INCREMENT);
+            }
+            // Not else if because should reset while holding above buttons
+            if (resetLift.get()) SmartDashboard2.put("liftSetpoint", 0);
 
-        // Liftlimit should enable/disable PID
-        if (liftLimit.get()) {
-            if (!shooterLiftPID.isEnabled()) shooterLiftPID.enable();
-        } else {
-            shooterLiftPID.disable();
+            // Liftlimit should enable/disable PID
+            if (liftLimit.get()) {
+                if (!shooterLiftPID.isEnabled()) shooterLiftPID.enable();
+            } else {
+                shooterLiftPID.disable();
+                shooterLift.set(-0.25);
+            }
+            // Actually adjust the setpoint
+            shooterLiftPID.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
         }
-        // Actually adjust the setpoint
-        shooterLiftPID.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
+        else{
+            if (buttonShooterLiftUp.get()) shooterLift.set(-0.5);
+            else if (buttonShooterLiftDown.get()) shooterLift.set(0.5);
+            else shooterLift.set(0);
+        }
         SmartDashboard2.put("shooterLiftPosition", shooterLift.getEncPosition());
         SmartDashboard2.put("shooterLiftPID", shooterLiftPID);
     }
