@@ -70,7 +70,7 @@ public class Robot extends IterativeRobot {
     private static final double TOLERANCE_LIFT = 5;
     private static final double ANGLE_LIFT_INCREMENT = 50;
     private static final double SPEED_SHOOTER_KICKER_OUT = 1;
-    private static final double SPEED_SHOOTER_KICKER_IN = 0.3;
+    private static final double SPEED_SHOOTER_KICKER_IN = 1;
 
     public RobotDrive drive;
 
@@ -239,8 +239,9 @@ public class Robot extends IterativeRobot {
         // Just in case...
         thisPIDController.disable();
 
-        sequentialExecutor.execute(new HomeThread(timeoutSwitch.get() ? 3000 : 0));
+       // sequentialExecutor.execute(new HomeThread(timeoutSwitch.get() ? 3000 : 0));
         shooterLiftPID.disable();
+        shooterLiftPID.setSetpoint(SmartDashboard2.put("liftSetpoint",0));
 
         // Drive Controls
         setControlType(SmartDashboard2.get("driverControlType", DRIVER_CONTROL_TYPE));
@@ -419,6 +420,7 @@ public class Robot extends IterativeRobot {
             shooterLiftPID.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
         }
         else{
+            shooterLiftPID.disable();
             if (buttonShooterLiftUp.get()) {
                 shooterLift.set(-0.5);
             } else if (buttonShooterLiftDown.get()) {
