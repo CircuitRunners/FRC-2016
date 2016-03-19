@@ -1,14 +1,16 @@
 package com.github.circuitrunners;
 
 import com.analog.adis16448.frc.ADIS16448_IMU;
-import com.github.circuitrunners.akilib.*;
+import com.github.circuitrunners.akilib.Button2;
+import com.github.circuitrunners.akilib.POVDirection;
+import com.github.circuitrunners.akilib.SmartDashboard2;
+import com.github.circuitrunners.akilib.Xbox;
 import com.github.circuitrunners.calib.CalibMath;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.buttons.Button;
 import edu.wpi.first.wpilibj.buttons.JoystickButton;
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
 import edu.wpi.first.wpilibj.tables.ITable;
-import edu.wpi.first.wpilibj.vision.AxisCamera;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,7 +38,7 @@ public class Robot extends IterativeRobot {
     private static final double JOYSTICK_SCALE_FLAT = 0.7;
     private static final double JOYSTICK_SCALE_POWER = 1;
     private static final double JOYSTICK_DEADZONE_PID = 0.2;
-    private static final String DRIVER_CONTROL_TYPE = "Xbox";
+    private static final int DRIVER_CONTROL_TYPE = 1;
 
     // Camera Constants
     private static final double CAMERA_RESOLUTION_Y = 480;
@@ -48,9 +50,9 @@ public class Robot extends IterativeRobot {
     private static final double TOP_CAMERA_HEIGHT = 14;
 
     // Axes
-    private static int AXIS_MOVE = 1;
-    private static int AXIS_ROTATE = 2;
-    private static int AXIS_THROTTLE = 3;
+    private static final int AXIS_MOVE = 1;
+    private static final int AXIS_ROTATE = 2;
+    private static final int AXIS_THROTTLE = 3;
 
     //PID Constants
     private static final double KP_THIS_SHIT = 0;
@@ -70,7 +72,7 @@ public class Robot extends IterativeRobot {
     private static final double SPEED_SHOOTER_KICKER_OUT = 1;
     private static final double SPEED_SHOOTER_KICKER_IN = 0.3;
 
-    private RobotDrive drive;
+    public RobotDrive drive;
 
     private VictorSP shooterWheelLeft;
     private VictorSP shooterWheelRight;
@@ -101,18 +103,11 @@ public class Robot extends IterativeRobot {
 
     private ADIS16448_IMU thisShit;
     private PIDController thisPIDController;
-    private String weatherStatus;
-
-    private DigitalInput switch1;
-    private DigitalInput switch2;
-
-    private AxisCamera camera;
-
     private final NetworkTable grip = NetworkTable.getTable("GRIP");
 
-    private ExecutorService sequentialExecutor = Executors.newSingleThreadExecutor();
-    private ExecutorService parallelExecutor = Executors.newCachedThreadPool();
-    private ScheduledExecutorService repeatedExecutor = Executors.newSingleThreadScheduledExecutor();
+    private final ExecutorService sequentialExecutor = Executors.newSingleThreadExecutor();
+    private final ExecutorService parallelExecutor = Executors.newCachedThreadPool();
+    private final ScheduledExecutorService repeatedExecutor = Executors.newSingleThreadScheduledExecutor();
 
     @Override
     public void robotInit() {
@@ -130,7 +125,8 @@ public class Robot extends IterativeRobot {
         shooterWheelRight = new VictorSP(PORT_SHOOTER_RIGHT);
 
         shooterLift = new CANTalon(PORT_SHOOTER_LIFT);
-        shooterLiftPID = new PIDController(KP_LIFT, KI_LIFT, KD_LIFT, shooterLift, shooterLift);
+        CANTalon localShooterLift = shooterLift;
+        shooterLiftPID = new PIDController(KP_LIFT, KI_LIFT, KD_LIFT, localShooterLift, localShooterLift);
         shooterLiftPID.setAbsoluteTolerance(TOLERANCE_LIFT);
         liftLimit = new DigitalInput(PORT_HALL_SENSOR);
 
@@ -140,54 +136,82 @@ public class Robot extends IterativeRobot {
         xbox = new Xbox(PORT_XBOX);
         
         thisShit = new ADIS16448_IMU();
-        thisShit.calibrate();
-        thisPIDController = new PIDController(KP_THIS_SHIT, 0, KD_THIS_SHIT, thisShit, output -> {});
+        ADIS16448_IMU localIMU = thisShit;
+        localIMU.calibrate();
+        thisPIDController = new PIDController(KP_THIS_SHIT, 0, KD_THIS_SHIT, localIMU, output -> {});
         thisPIDController.setPercentTolerance(TOLERANCE_THIS_SHIT);
 
-        switch1 = new DigitalInput(1);
-        switch2 = new DigitalInput(2);
-
-        camera = new AxisCamera("10.10.2.11");
+        /*AxisCamera camera = new AxisCamera("10.10.2.11");
+        try {
+            camera.getImage();
+        } catch (NIVisionException e) {
+            e.printStackTrace();
+        } */
     }
 
-    @Override
-    public void autonomousInit() {
-        double last = Timer.getFPGATimestamp();
-        double curr;
-        double diff = 0;
-        while (diff < 1000 && liftLimit.get()) {
-            shooterLift.set(0.75);
-            curr = Timer.getFPGATimestamp();
-            diff = curr - last;
+    private final DigitalInput directionSwitch = new DigitalInput(1);
+    private final DigitalInput timeoutSwitch = new DigitalInput(2);
+
+    private class HomeThread implements Runnable {
+        int timeout;
+
+        private HomeThread(int homeTimeout){
+            timeout = homeTimeout;
         }
-        shooterLift.set(0);
-        shooterLift.setEncPosition(0);
-        // TODO: Add switch for direction
-        sequentialExecutor.execute(new AutonomousDriveThread(0.625, 0, 5000));
+
+        @Override
+        public void run() {
+            long last = System.currentTimeMillis();
+            long curr;
+            long diff = 0;
+            while (diff < timeout && liftLimit.get()) {
+                shooterLift.set(0.75);
+                curr = System.currentTimeMillis();
+                diff = curr - last;
+            }
+            shooterLift.set(0);
+            shooterLift.setEncPosition(0);
+        }
+
     }
 
     private class AutonomousDriveThread implements Runnable {
         double moveVal;
         double rotateVal;
+        int delay;
         int waitTime;
 
-        public AutonomousDriveThread(double moveVal, double rotateVal) {
+        private AutonomousDriveThread(double moveVal, double rotateVal) {
             this(moveVal, rotateVal, 0);
         }
 
-        public AutonomousDriveThread(double moveVal, double rotateVal, int waitTime) {
+        private AutonomousDriveThread(double moveVal, double rotateVal, int waitTime) {
             this.moveVal = moveVal;
             this.rotateVal = rotateVal;
             this.waitTime = waitTime;
         }
 
+        private AutonomousDriveThread(double moveVal, double rotateVal, int delay, int waitTime) {
+            this.moveVal = moveVal;
+            this.rotateVal = rotateVal;
+            this.delay = delay;
+            this.waitTime = waitTime;
+        }
+
         @Override
         public void run() {
+            if (delay > 0) {
+                try {
+                    Thread.sleep(delay);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
             drive.arcadeDrive(moveVal, rotateVal);
             if (waitTime > 0) {
                 try {
                     Thread.sleep(waitTime);
-                    drive.arcadeDrive(-0  ,  0); //hoot hoot bitch
+                    drive.arcadeDrive(0  ,  0); //hoot hoot bitch
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -196,20 +220,27 @@ public class Robot extends IterativeRobot {
     }
 
     @Override
+    public void autonomousInit() {
+        sequentialExecutor.execute(new HomeThread(timeoutSwitch.get() ? 3000 : 0));
+        shooterLiftPID.disable();
+        // TODO: Add switch for direction
+        sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, 0, 0, 5000));
+        System.out.println("timeout " + timeoutSwitch.get());
+        System.out.println("direction " +  directionSwitch.get());
+    }
+
+    @Override
     public void autonomousPeriodic() {
     }
+
 
     @Override
     public void teleopInit() {
         // Just in case...
         thisPIDController.disable();
 
-        while (liftLimit.get()) {
-            shooterLift.set(0.5);
-        }
-        shooterLift.setEncPosition(0);
-shooterLiftPID.disable();
-        weatherStatus = CalibMath.answerQuestion();
+        sequentialExecutor.execute(new HomeThread(timeoutSwitch.get() ? 3000 : 0));
+        shooterLiftPID.disable();
 
         // Drive Controls
         setControlType(SmartDashboard2.get("driverControlType", DRIVER_CONTROL_TYPE));
@@ -221,33 +252,27 @@ shooterLiftPID.disable();
     @Override
     public void teleopPeriodic() {
 
-        SmartDashboard2.put("switch1", switch1.get());
-        SmartDashboard2.put("switch2", switch2.get());
-
         drive();
         liftShooter();
         shootAndIntake();
 
         // Gyro reset
-        if (buttonGyroReset.get()) thisShit.reset();
+        if (buttonGyroReset.get()) {
+            thisShit.reset();
+        }
 
         // Debug
         // Drive values
-        SmartDashboard2.put("derp", CalibMath.adjustedDeadband(joystick.getX(),0.3)); //save "derp" to dictionary
-
-        //Weather
-        SmartDashboard2.put("Temperature", thisShit.getTemperature());
-        SmartDashboard2.put("Pressure", thisShit.getBarometricPressure());
-        SmartDashboard2.put("Will it rain?", weatherStatus);
+        SmartDashboard2.put("Deadband", CalibMath.adjustedDeadband(joystick.getX(),0.3)); //save "derp" to dictionary
 
         SmartDashboard2.put("IMU", thisShit);
        // SmartDashboard2.put("goodToGo", isShooterAimed);
 
-        double[] temp = getStuff();
+       /* double[] temp = getStuff();
         if (temp.length == 2) {
             SmartDashboard2.put("distance", temp[0]);
             SmartDashboard2.put("azimuth", temp[1]);
-        }
+        }*/
     }
 
     private void moveStraight(double distance, double speed) {
@@ -265,42 +290,41 @@ shooterLiftPID.disable();
         thisPIDController.enable();
         double initialAngle = thisShit.getAngle();
         double finalAngle = initialAngle + angle;
-        while (finalAngle < 0 || finalAngle > 360) finalAngle += finalAngle < 0 ? 360 : finalAngle > 360 ? -360 : 0;
+        while (finalAngle < 0 || finalAngle > 360) {
+            finalAngle += finalAngle < 0 ? 360 : finalAngle > 360 ? -360 : 0;
+        }
         thisPIDController.setSetpoint(finalAngle);
         drive.arcadeDrive(0, thisPIDController.get());
         thisPIDController.disable();
     }
 
-    private void setControlType(String driverControlType) {
-        switch (driverControlType) {
-            case "JoystickOnly":
-                buttonPidEnable = new JoystickButton(joystick, 4);
-                buttonGyroReset = new JoystickButton(joystick, 6);
+    private void setControlType(int driverControlType) {
+        if (driverControlType == 0) {
+            buttonPidEnable = new JoystickButton(joystick, 4);
+            buttonGyroReset = new JoystickButton(joystick, 6);
 
-                buttonShooterLiftDown = new JoystickButton(joystick, 3);
-                buttonShooterLiftUp = new JoystickButton(joystick, 5);
-                resetLift = new JoystickButton(joystick, 9);
+            buttonShooterLiftDown = new JoystickButton(joystick, 3);
+            buttonShooterLiftUp = new JoystickButton(joystick, 5);
+            resetLift = new JoystickButton(joystick, 9);
 
-                buttonShooterWheelspinOut = new JoystickButton(joystick, 1);
-                buttonShooterWheelspinIn = new JoystickButton(joystick, 2);
-                buttonShooterKickOut = new Button2(joystick, POVDirection.UP);
-                buttonShooterKickIn = new Button2(joystick, POVDirection.DOWN);
-                break;
-            default:
-                buttonPidEnable = new JoystickButton(joystick, 4);
-                buttonGyroReset = new JoystickButton(joystick, 6);
+            buttonShooterWheelspinOut = new JoystickButton(joystick, 1);
+            buttonShooterWheelspinIn = new JoystickButton(joystick, 2);
+            buttonShooterKickOut = new Button2(joystick, POVDirection.UP);
+            buttonShooterKickIn = new Button2(joystick, POVDirection.DOWN);
+        } else {
+            buttonPidEnable = new JoystickButton(joystick, 4);
+            buttonGyroReset = new JoystickButton(joystick, 6);
 
-                buttonShooterLiftDown = new JoystickButton(xbox, 1);
-                buttonShooterLiftUp = new JoystickButton(xbox, 2);
-                buttonDisableLimit = new JoystickButton(xbox, 7);
-                buttonEnableLimit = new JoystickButton(xbox, 8);
-                resetLift = new JoystickButton(xbox, 4);
+            buttonShooterLiftDown = new Button2(xbox, POVDirection.DOWN);
+            buttonShooterLiftUp = new Button2(xbox, POVDirection.UP);
+            buttonDisableLimit = new JoystickButton(xbox, 7);
+            buttonEnableLimit = new JoystickButton(xbox, 8);
+            resetLift = new JoystickButton(xbox, 1);
 
-                buttonShooterWheelspinOut = new JoystickButton(xbox, 5);
-                buttonShooterWheelspinIn = new JoystickButton(joystick, 1);
-                buttonShooterKickIn = new JoystickButton(joystick, 2);
-                buttonShooterKickOut = new JoystickButton(xbox, 6);
-                break;
+            buttonShooterWheelspinOut = new JoystickButton(xbox, 5);
+            buttonShooterWheelspinIn = new JoystickButton(joystick, 1);
+            buttonShooterKickIn = new JoystickButton(joystick, 1);
+            buttonShooterKickOut = new JoystickButton(xbox, 6);
         }
     }
 
@@ -315,15 +339,16 @@ shooterLiftPID.disable();
                                                                                  SmartDashboard2.get("joystickDeadzone", JOYSTICK_DEADZONE),
                                                                                  SmartDashboard2.get("joystickScaleFlat", JOYSTICK_SCALE_FLAT),
                                                                                  SmartDashboard2.get("joystickScalePower", JOYSTICK_SCALE_POWER))); //could make magic numbers into constants but who cares
-        double throttledMove = SmartDashboard2.put("throttledMove", (throttleVal) * moveVal); //0% chance we need this elsewhere but who cares
-        //there's no code in this line but who cares
+        double throttledMove = SmartDashboard2.put("throttledMove", throttleVal * moveVal); //0% chance we need this elsewhere but who cares
 
         // Gyro values
         double thisRadians = thisShit.getAngle();
         double thisDegrees = Math.toDegrees(thisRadians);
 
         // Update setpoint if turning
-        if (thisPIDController.isEnabled() && Math.abs(rotateVal) > JOYSTICK_DEADZONE_PID) thisPIDController.setSetpoint(thisDegrees);
+        if (thisPIDController.isEnabled() && Math.abs(rotateVal) > JOYSTICK_DEADZONE_PID) {
+            thisPIDController.setSetpoint(thisDegrees);
+        }
 
         // PID values
         SmartDashboard2.put("thisPIDController", thisPIDController);
@@ -334,7 +359,9 @@ shooterLiftPID.disable();
             triggerPressed = true;
         }
         if (buttonPidEnable.get()) {
-            if (thisPIDController.isEnabled()) thisPIDController.enable();
+            if (thisPIDController.isEnabled()) {
+                thisPIDController.enable();
+            }
         } else {
             thisPIDController.disable();
             triggerPressed = false;
@@ -355,31 +382,50 @@ shooterLiftPID.disable();
         // Create setpoint variable from SmartDashboard value
         double liftSetpoint = SmartDashboard2.get("liftSetpoint", 0);
         // Check button values
-        if(buttonEnableLimit.get()) liftSwitchEnabled = true;
-        if(buttonDisableLimit.get()) liftSwitchEnabled = false;
+        if(buttonEnableLimit.get()) {
+            liftSwitchEnabled = true;
+        }
+        if(buttonDisableLimit.get()) {
+            liftSwitchEnabled = false;
+        }
         if(liftSwitchEnabled) { //If limit switch doesnt break
-            if (buttonShooterLiftUp.get()) {
+            if (buttonShooterLiftUp.get() && shooterLiftPID.isEnabled() /*&& SmartDashboard2.get("liftSetpoint", 0) + liftSetpoint + ANGLE_LIFT_INCREMENT < 600*/) {
                 SmartDashboard2.put("liftSetpoint", liftSetpoint + ANGLE_LIFT_INCREMENT);
-            } else if (buttonShooterLiftDown.get() && liftLimit.get()) {
+            } else if (buttonShooterLiftDown.get() && liftLimit.get() && shooterLiftPID.isEnabled()) {
                 SmartDashboard2.put("liftSetpoint", liftSetpoint - ANGLE_LIFT_INCREMENT);
             }
             // Not else if because should reset while holding above buttons
-            if (resetLift.get()) SmartDashboard2.put("liftSetpoint", 0);
+            if (resetLift.get()) {
+                SmartDashboard2.put("liftSetpoint", 0);
+            }
 
             // Liftlimit should enable/disable PID
             if (liftLimit.get()) {
-                if (!shooterLiftPID.isEnabled()) shooterLiftPID.enable();
+                if (!shooterLiftPID.isEnabled()) {
+                    shooterLiftPID.enable();
+                }
             } else {
                 shooterLiftPID.disable();
-                shooterLift.set(-0.25);
+                if (buttonShooterLiftUp.get()) {
+                    shooterLift.set(-0.5);
+                } else if (buttonShooterLiftDown.get()) {
+                    shooterLift.set(0.5);
+                } else {
+                    shooterLift.set(0);
+                }
+                return;
             }
             // Actually adjust the setpoint
             shooterLiftPID.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
         }
         else{
-            if (buttonShooterLiftUp.get()) shooterLift.set(-0.5);
-            else if (buttonShooterLiftDown.get()) shooterLift.set(0.5);
-            else shooterLift.set(0);
+            if (buttonShooterLiftUp.get()) {
+                shooterLift.set(-0.5);
+            } else if (buttonShooterLiftDown.get()) {
+                shooterLift.set(0.5);
+            } else {
+                shooterLift.set(0);
+            }
         }
         SmartDashboard2.put("shooterLiftPosition", shooterLift.getEncPosition());
         SmartDashboard2.put("shooterLiftPID", shooterLiftPID);
@@ -403,49 +449,55 @@ shooterLiftPID.disable();
         }
 
         // Kicker wheel spin
-        if (buttonShooterKickOut.get()) shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
-        else if (buttonShooterKickIn.get()) shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
-        else shooterKicker.set(0);
+        if (buttonShooterKickOut.get()) {
+            shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
+        } else if (buttonShooterKickIn.get()) {
+            shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
+        } else {
+            shooterKicker.set(0);
+        }
     }
 
     // Camera stuff bleh
     public double[] getStuff(){
-        try {
-            final ITable table = grip.getSubTable("contours");
+        ITable table = grip.getSubTable("contours");
 
-            int largest = CalibMath.getLargestIndex(table.getNumberArray("area", new double[0]));
+        double[] emptyArr = new double[0];
 
-            double[] centerXs = table.getNumberArray("centerX", new double[0]);
-            double centerX = centerXs[largest];
+        int largest = CalibMath.getLargestIndex(table.getNumberArray("area", emptyArr));
 
-            double[] centerYs = table.getNumberArray("centerY", new double[0]);
-            double centerY = centerYs[largest];
-
-            double[] widths = table.getNumberArray("width", new double[0]);
-            double width = widths[largest];
-
-            double[] heights = table.getNumberArray("height", new double[0]);
-            double height = heights[largest];
-
-            double[] areas = table.getNumberArray("area", new double[0]);
-            double area = areas[largest];
-
-            double y = -((2 * (centerY / CAMERA_RESOLUTION_Y)) - 1);
-            double distance = (TOP_TARGET_HEIGHT - TOP_CAMERA_HEIGHT) /
-                    Math.tan((y * VERTICAL_FOV / 2.0 + CAMERA_ANGLE) * Math.PI / 180);
-            //				angle to target...would not rely on this
-            double targetX = (2 * (centerX / CAMERA_RESOLUTION_X)) - 1;
-            double azimuth = CalibMath.normalize360(targetX * HORIZONTAL_FOV / 2.0 + 0);
-
-            double[] values = {distance, azimuth};
-            return values;
-        } catch (ArrayIndexOutOfBoundsException e) {
-            return new double[]{0, 0};
+        double[] centerXs = table.getNumberArray("centerX", emptyArr);
+        double centerX = 0.0;
+        if (largest < centerXs.length) {
+            centerX = centerXs[largest];
         }
+
+        double[] centerYs = table.getNumberArray("centerY", emptyArr);
+        double centerY = 0.0;
+        if (largest < centerXs.length) {
+            centerY = centerYs[largest];
+        }
+
+        // double[] widths = table.getNumberArray("width", new double[0]);
+        // double width = widths[largest]; TODO: use these
+
+        // double[] heights = table.getNumberArray("height", new double[0]);
+        // double height = heights[largest]; TODO: use these
+
+        // double[] areas = table.getNumberArray("area", new double[0]);
+        // double area = areas[largest]; TODO: use these
+
+        double y = -(2 * centerY / CAMERA_RESOLUTION_Y - 1);
+        double distance = (TOP_TARGET_HEIGHT - TOP_CAMERA_HEIGHT) /
+                Math.tan((y * VERTICAL_FOV / 2.0 + CAMERA_ANGLE) * Math.PI / 180);
+        //				angle to target...would not rely on this
+        double targetX = 2 * centerX / CAMERA_RESOLUTION_X - 1;
+        double azimuth = CalibMath.normalize360(targetX * HORIZONTAL_FOV / 2.0 + 0);
+
+        return new double[]{distance, azimuth};
     }
 
     @Override
     public void disabledInit() {
-        System.out.println("Not default IterativeRobot.disabledInit() method... Overload me, Chandler!");
     }
 }
