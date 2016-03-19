@@ -323,7 +323,7 @@ public class Robot extends IterativeRobot {
             resetLift = new JoystickButton(xbox, 1);
 
             buttonShooterWheelspinOut = new JoystickButton(xbox, 5);
-            buttonShooterWheelspinIn = new JoystickButton(joystick, 1);
+            buttonShooterWheelspinIn = new JoystickButton(joystick, 2);
             buttonShooterKickIn = new JoystickButton(joystick, 1);
             buttonShooterKickOut = new JoystickButton(xbox, 6);
         }
