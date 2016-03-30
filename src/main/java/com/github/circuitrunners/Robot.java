@@ -21,8 +21,8 @@ public class Robot extends IterativeRobot {
     public static final int PORT_DRIVE_FRONT_RIGHT = 2;
     public static final int PORT_DRIVE_REAR_RIGHT = 3;
     
-    private static final int PORT_SHOOTER_LEFT = 4;
-    private static final int PORT_SHOOTER_RIGHT = 5;
+    private static final int PORT_SHOOTER_LEFT = 2;
+    private static final int PORT_SHOOTER_RIGHT = 3;
     private static final int PORT_SHOOTER_LIFT = 0;
     private static final int PORT_SHOOTER_KICKER = 1;
 
@@ -71,8 +71,8 @@ public class Robot extends IterativeRobot {
 
     private RobotDrive drive;
 
-    private VictorSP shooterWheelLeft;
-    private VictorSP shooterWheelRight;
+    private CANTalon shooterWheelLeft;
+    private CANTalon shooterWheelRight;
 
     private CANTalon shooterLift;
     private PIDController shooterLiftPID;
@@ -119,8 +119,8 @@ public class Robot extends IterativeRobot {
 
         drive.setExpiration(5);
 
-        shooterWheelLeft = new VictorSP(PORT_SHOOTER_LEFT);
-        shooterWheelRight = new VictorSP(PORT_SHOOTER_RIGHT);
+        shooterWheelLeft = new CANTalon(PORT_SHOOTER_LEFT);
+        shooterWheelRight = new CANTalon(PORT_SHOOTER_RIGHT);
 
         shooterLift = new CANTalon(PORT_SHOOTER_LIFT);
         shooterLiftPID = new PIDController(KP_LIFT, KI_LIFT, KD_LIFT, shooterLift, shooterLift);
@@ -183,10 +183,10 @@ public class Robot extends IterativeRobot {
         // Just in case...
         thisPIDController.disable();
 
-        while (!liftLimit.get()) {
-            shooterLift.set(-0.5);
-        }
-        shooterLift.setEncPosition(0);
+//        while (!liftLimit.get()) {
+//            shooterLift.set(-0.5);
+//        }
+//        shooterLift.setEncPosition(0);
 
         weatherStatus = CalibMath.answerQuestion();
 
@@ -199,7 +199,14 @@ public class Robot extends IterativeRobot {
     public void teleopPeriodic() {
 
         drive();
-        liftShooter();
+//        liftShooter();
+        if (buttonShooterLiftUp.get()) {
+            shooterLift.set(0.5);
+        } else if (buttonShooterLiftDown.get()) {
+            shooterLift.set(-0.1);
+        } else {
+            shooterLift.set(0);
+        }
         shootAndIntake();
 
         // Gyro reset
