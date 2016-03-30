@@ -224,11 +224,11 @@ public class Robot extends IterativeRobot {
         SmartDashboard2.put("IMU", thisShit);
        // SmartDashboard2.put("goodToGo", isShooterAimed);
 
-        double[] temp = getStuff();
-        if (temp.length == 2) {
-            SmartDashboard2.put("distance", temp[0]);
-            SmartDashboard2.put("azimuth", temp[1]);
-        }
+//        double[] temp = getStuff();
+//        if (temp.length == 2) {
+//            SmartDashboard2.put("distance", temp[0]);
+//            SmartDashboard2.put("azimuth", temp[1]);
+//        }
     }
 
     private void moveStraight(double distance, double speed) {
