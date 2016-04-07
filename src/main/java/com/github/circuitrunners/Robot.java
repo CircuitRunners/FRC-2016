@@ -35,7 +35,7 @@ public class Robot extends IterativeRobot {
 
     // Drive Adjustments
     private static final double JOYSTICK_DEADZONE = 0.1;
-    private static final double JOYSTICK_SCALE_FLAT = 0.7;
+    private static final double JOYSTICK_SCALE_FLAT = 1;
     private static final double JOYSTICK_SCALE_POWER = 1;
     private static final double JOYSTICK_DEADZONE_PID = 0.2;
     private static final int DRIVER_CONTROL_TYPE = 1;
@@ -96,10 +96,10 @@ public class Robot extends IterativeRobot {
     private Button buttonEnableLimit;
     private Button resetLift;
 
-    private Button buttonShooterWheelspinOut;
-    private Button buttonShooterWheelspinIn;
-    private Button buttonShooterKickOut;
-    private Button buttonShooterKickIn;
+    private Button buttonShooterOut;
+    //private Button buttonShooterWheelspinIn;
+    private Button buttonShooterOutSlow;
+    private Button buttonShooterIn;
 
     private ADIS16448_IMU thisShit;
     private PIDController thisPIDController;
@@ -108,6 +108,10 @@ public class Robot extends IterativeRobot {
     private final ExecutorService sequentialExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService parallelExecutor = Executors.newCachedThreadPool();
     private final ScheduledExecutorService repeatedExecutor = Executors.newSingleThreadScheduledExecutor();
+
+    private Runnable shootOut = new ShooterOutSet(SPEED_SHOOTER_WHEEL_LEFT);
+    private Runnable shootOutSlow = new ShooterOutSet(SPEED_SHOOTER_WHEEL_LEFT * 0.5);
+    private Runnable shootIn = new ShooterInSet();
 
     @Override
     public void robotInit() {
@@ -308,10 +312,10 @@ public class Robot extends IterativeRobot {
             buttonShooterLiftUp = new JoystickButton(joystick, 5);
             resetLift = new JoystickButton(joystick, 9);
 
-            buttonShooterWheelspinOut = new JoystickButton(joystick, 1);
-            buttonShooterWheelspinIn = new JoystickButton(joystick, 2);
-            buttonShooterKickOut = new Button2(joystick, POVDirection.UP);
-            buttonShooterKickIn = new Button2(joystick, POVDirection.DOWN);
+            buttonShooterOut = new JoystickButton(joystick, 1);
+            //buttonShooterWheelspinIn = new JoystickButton(joystick, 2);
+            buttonShooterOutSlow = new Button2(joystick, POVDirection.UP);
+            buttonShooterIn = new Button2(joystick, POVDirection.DOWN);
         } else {
             buttonPidEnable = new JoystickButton(joystick, 4);
             buttonGyroReset = new JoystickButton(joystick, 6);
@@ -322,10 +326,10 @@ public class Robot extends IterativeRobot {
             buttonEnableLimit = new JoystickButton(xbox, 8);
             resetLift = new JoystickButton(xbox, 1);
 
-            buttonShooterWheelspinOut = new JoystickButton(xbox, 5);
-            buttonShooterWheelspinIn = new JoystickButton(joystick, 2);
-            buttonShooterKickIn = new JoystickButton(joystick, 1);
-            buttonShooterKickOut = new JoystickButton(xbox, 6);
+            buttonShooterOut = new JoystickButton(xbox, 5);
+            //buttonShooterWheelspinIn = new JoystickButton(joystick, 2);
+            buttonShooterIn = new JoystickButton(joystick, 1);
+            buttonShooterOutSlow = new JoystickButton(xbox, 6);
         }
     }
 
@@ -434,29 +438,58 @@ public class Robot extends IterativeRobot {
     }
 
     public void shootAndIntake() {
-        double shooterLeftWheelSpeed = SmartDashboard2.get("leftWheelSpeed", SPEED_SHOOTER_WHEEL_LEFT);
-        double shooterRightWheelSpeed = SmartDashboard2.get("rightWheelSpeed", SPEED_SHOOTER_WHEEL_RIGHT);
-        // Shooter Wheels spin
-        if (buttonShooterWheelspinIn.get()) {
-            shooterKicker.set(-SPEED_SHOOTER_KICKER_IN);
-            shooterWheelLeft.set(shooterLeftWheelSpeed);
-            shooterWheelRight.set(-shooterRightWheelSpeed);
-        } else if (buttonShooterWheelspinOut.get()) {
-            shooterWheelLeft.set(-shooterLeftWheelSpeed);
-            shooterWheelRight.set(shooterRightWheelSpeed);
+        if (buttonShooterOut.get() || buttonShooterOutSlow.get() || buttonShooterIn.get()) {
+            if (buttonShooterOut.get()) {
+                parallelExecutor.execute(shootOut);
+            } else if (buttonShooterOutSlow.get()) {
+                parallelExecutor.execute(shootOutSlow);
+            } else if (buttonShooterIn.get()) {
+                parallelExecutor.execute(shootIn);
+            }
         } else {
             shooterWheelLeft.set(0);
             shooterWheelRight.set(0);
             shooterKicker.set(0);
         }
+    }
 
-        // Kicker wheel spin
-        if (buttonShooterKickOut.get()) {
+    public class ShooterOutSet implements Runnable {
+
+        private double speed;
+
+        public ShooterOutSet(double speed) {
+            this.speed = speed;
+        }
+
+        @Override
+        public void run() {
+            shooterWheelLeft.set(-speed);
+            shooterWheelRight.set(speed);
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             shooterKicker.set(-SPEED_SHOOTER_KICKER_OUT);
-        } else if (buttonShooterKickIn.get()) {
+        }
+    }
+
+    public class ShooterInSet implements Runnable {
+
+        public ShooterInSet() {
+
+        }
+
+        @Override
+        public void run() {
             shooterKicker.set(SPEED_SHOOTER_KICKER_IN);
-        } else {
-            shooterKicker.set(0);
+            try {
+                Thread.sleep(200);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            shooterWheelLeft.set(1);
+            shooterWheelRight.set(-1);
         }
     }
 
