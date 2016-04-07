@@ -21,10 +21,10 @@ public class Robot extends IterativeRobot {
     public static final int PORT_DRIVE_FRONT_RIGHT = 2;
     public static final int PORT_DRIVE_REAR_RIGHT = 3;
     
-    private static final int PORT_SHOOTER_LEFT = 2;
-    private static final int PORT_SHOOTER_RIGHT = 3;
-    private static final int PORT_SHOOTER_LIFT = 0;
-    private static final int PORT_SHOOTER_KICKER = 1;
+    private static final int PORT_SHOOTER_LEFT = 12;
+    private static final int PORT_SHOOTER_RIGHT = 13;
+    private static final int PORT_SHOOTER_LIFT = 14;
+    private static final int PORT_SHOOTER_KICKER = 11;
 
     private static final int PORT_HALL_SENSOR = 0;
     private static final int PORT_JOYSTICK = 0;
@@ -67,7 +67,7 @@ public class Robot extends IterativeRobot {
     private static final double TOLERANCE_LIFT = 5;
     private static final double ANGLE_LIFT_INCREMENT = 50;
     private static final double SPEED_SHOOTER_KICKER_OUT = 1;
-    private static final double SPEED_SHOOTER_KICKER_IN = 0.3;
+    private static final double SPEED_SHOOTER_KICKER_IN = -0.5;
 
     private RobotDrive drive;
 
@@ -283,12 +283,12 @@ public class Robot extends IterativeRobot {
         }
     }
 
-    private void drive() {
+    private void   drive() {
         // Drive values
         double moveVal = SmartDashboard2.put("moveVal", joystick.getRawAxis(AXIS_MOVE));
-        double twistVal = SmartDashboard2.put("twistVal", joystick.getRawAxis(AXIS_ROTATE));
+        double twistVal = SmartDashboard2.put("twistVal", -joystick.getRawAxis(AXIS_ROTATE));
         double throttleVal = SmartDashboard2.put("throttleVal",
-                                                 CalibMath.throttleMath(-joystick.getRawAxis(AXIS_THROTTLE)));
+                                                 CalibMath.throttleMath(joystick.getRawAxis(AXIS_THROTTLE)));
 
         double rotateVal = SmartDashboard2.put("rotateVal", CalibMath.scaleDoubleFlat(twistVal,
                                                                                  SmartDashboard2.get("joystickDeadzone", JOYSTICK_DEADZONE),
@@ -319,8 +319,8 @@ public class Robot extends IterativeRobot {
             triggerPressed = false;
         }
 
-        double throttledRotate = SmartDashboard2.put("throttledRotate", thisPIDController.get());
-        drive.arcadeDrive(throttledMove, throttledRotate);
+        //double throttledRotate = SmartDashboard2.put("throttledRotate", thisPIDController.get());
+        drive.arcadeDrive(throttledMove, rotateVal);
     }
 
     public void liftShooter() {
