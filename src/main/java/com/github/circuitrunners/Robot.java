@@ -105,6 +105,8 @@ public class Robot extends IterativeRobot {
     private PIDController thisPIDController;
     private final NetworkTable grip = NetworkTable.getTable("GRIP");
 
+    private Encoder encoder;
+
     private final ExecutorService sequentialExecutor = Executors.newSingleThreadExecutor();
     private final ExecutorService parallelExecutor = Executors.newCachedThreadPool();
     private final ScheduledExecutorService repeatedExecutor = Executors.newSingleThreadScheduledExecutor();
@@ -144,6 +146,9 @@ public class Robot extends IterativeRobot {
         localIMU.calibrate();
         thisPIDController = new PIDController(KP_THIS_SHIT, 0, KD_THIS_SHIT, localIMU, output -> {});
         thisPIDController.setPercentTolerance(TOLERANCE_THIS_SHIT);
+
+        encoder = new Encoder(3 ,4);
+        encoder.reset();
 
         /*AxisCamera camera = new AxisCamera("10.10.2.11");
         try {
@@ -260,6 +265,12 @@ public class Robot extends IterativeRobot {
         drive();
         liftShooter();
         shootAndIntake();
+        if(joystick.getRawButton(9)){
+            encoder.reset();
+            while(encoder.getDistance() > -900){
+                drive.arcadeDrive(-.8,0);
+            }
+        }
 
         // Gyro reset
         if (buttonGyroReset.get()) {
@@ -272,6 +283,7 @@ public class Robot extends IterativeRobot {
 
         SmartDashboard2.put("IMU", thisShit);
        // SmartDashboard2.put("goodToGo", isShooterAimed);
+        SmartDashboard2.put("encoder", encoder.getDistance());
 
        /* double[] temp = getStuff();
         if (temp.length == 2) {
