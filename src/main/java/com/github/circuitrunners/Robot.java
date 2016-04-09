@@ -220,7 +220,7 @@ public class Robot extends IterativeRobot {
             if (waitTime > 0) {
                 try {
                     Thread.sleep(waitTime);
-                    drive.arcadeDrive(0  ,  0); //hoot hoot bitch
+                    drive.arcadeDrive(0, 0); //hoot hoot bitch
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -232,8 +232,7 @@ public class Robot extends IterativeRobot {
     public void autonomousInit() {
         sequentialExecutor.execute(new HomeThread(timeoutSwitch.get() ? 3000 : 0));
         shooterLiftPID.disable();
-        // TODO: Add switch for direction
-        sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, 0, 0, 5000));
+        sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, -1, 0, 4500));
         System.out.println("timeout " + timeoutSwitch.get());
         System.out.println("direction " +  directionSwitch.get());
     }
@@ -397,7 +396,7 @@ public class Robot extends IterativeRobot {
         // Put shooterLift PID control values to SmartDashboard
         SmartDashboard2.put("liftMotor", shooterLift);
         // Create setpoint variable from SmartDashboard value
-        double liftSetpoint = SmartDashboard2.get("liftSetpoint", 0);
+        double liftSetpoint = SmartDashboard2.get("liftSetpoint", 0.0);
         // Check button values
         if(buttonEnableLimit.get()) {
             liftSwitchEnabled = true;
@@ -433,7 +432,7 @@ public class Robot extends IterativeRobot {
                 return;
             }
             // Actually adjust the setpoint
-            shooterLiftPID.setSetpoint(SmartDashboard2.get("liftSetpoint", 0));
+            shooterLiftPID.setSetpoint(SmartDashboard2.get("liftSetpoint", 0.0));
         }
         else{
             shooterLiftPID.disable();
