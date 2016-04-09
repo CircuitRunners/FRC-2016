@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component LANGUAGE_LEVEL="JDK_1_8" inheritJdk="true">
+	<output-test url="file://$MODULE_DIR$/target/test-classes"/>
+	<contentEntry url="file://$MODULE_DIR$">
+		<excludeFolder url="file://$MODULE_DIR$/target"/>
+	</contentEntry>
+	<levels>
+		<level name="Maven: edu.wpi.first.wpilibj:wpilibJavaFinal:0.1.0-SNAPSHOT" value="project"/>
+		<level name="Maven: org.javaopencvbook:opencvjar:3.0.0" value="project"/>
+	</levels>
+</component>

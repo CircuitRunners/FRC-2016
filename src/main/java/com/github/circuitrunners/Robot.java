@@ -59,9 +59,9 @@ public class Robot extends IterativeRobot {
     private static final double KD_THIS_SHIT = 0;
     private static final double TOLERANCE_THIS_SHIT = 0.1;
 
-    private static final double KP_LIFT = 0.2;
-    private static final double KI_LIFT = 0.1;
-    private static final double KD_LIFT = 0.1;
+    private static final double KP_LIFT = -0.001;
+    private static final double KI_LIFT = 0;
+    private static final double KD_LIFT = 0;
 
     //Shooter Constants
     private static final double SPEED_SHOOTER_WHEEL_LEFT = 1;
@@ -233,8 +233,11 @@ public class Robot extends IterativeRobot {
     public void autonomousInit() {
         sequentialExecutor.execute(new HomeThread(timeoutSwitch.get() ? 3000 : 0));
         shooterLiftPID.disable();
+
         sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, -0.075, 0, 2400));
         sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, 0.075, 0, 2000));
+
+
     }
 
     @Override

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/CircuitLibrary"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Maven: edu.wpi.first.wpilibj:wpilibJavaFinal:0.1.0-SNAPSHOT"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Maven: org.javaopencvbook:opencvjar:3.0.0"/>
+	<classpathentry kind="output" path="target/classes"/>
+</classpath>
