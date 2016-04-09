@@ -68,7 +68,7 @@ public class Robot extends IterativeRobot {
     private static final double SPEED_SHOOTER_WHEEL_RIGHT = 1;
 
     private static final double TOLERANCE_LIFT = 5;
-    private static final double ANGLE_LIFT_INCREMENT = 90;
+    private static final double ANGLE_LIFT_INCREMENT = 50;
     private static final double SPEED_SHOOTER_KICKER_OUT = 1;
     private static final double SPEED_SHOOTER_KICKER_IN = 1;
 
