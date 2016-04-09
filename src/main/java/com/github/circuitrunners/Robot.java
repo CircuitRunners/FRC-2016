@@ -424,9 +424,9 @@ public class Robot extends IterativeRobot {
             } else {
                 shooterLiftPID.disable();
                 if (buttonShooterLiftUp.get()) {
-                    shooterLift.set(-0.5);
+                    shooterLift.set(-0.75);
                 } else if (buttonShooterLiftDown.get()) {
-                    shooterLift.set(0.5);
+                    shooterLift.set(0.75);
                 } else {
                     shooterLift.set(0);
                 }
