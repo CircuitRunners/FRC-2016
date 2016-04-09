@@ -97,7 +97,7 @@ public class Robot extends IterativeRobot {
     private Button resetLift;
 
     private Button buttonShooterOut;
-    //private Button buttonShooterWheelspinIn;
+    private Button buttonShooterPlace;
     private Button buttonShooterOutSlow;
     private Button buttonShooterIn;
 
@@ -114,6 +114,7 @@ public class Robot extends IterativeRobot {
     private Runnable shootOut = new ShooterOutSet(SPEED_SHOOTER_WHEEL_LEFT);
     private Runnable shootOutSlow = new ShooterOutSet(SPEED_SHOOTER_WHEEL_LEFT * 0.5);
     private Runnable shootIn = new ShooterInSet();
+    private Button button180NoDoritoe;
 
     @Override
     public void robotInit() {
@@ -232,9 +233,8 @@ public class Robot extends IterativeRobot {
     public void autonomousInit() {
         sequentialExecutor.execute(new HomeThread(timeoutSwitch.get() ? 3000 : 0));
         shooterLiftPID.disable();
-        sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, -1, 0, 4500));
-        System.out.println("timeout " + timeoutSwitch.get());
-        System.out.println("direction " +  directionSwitch.get());
+        sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, -0.075, 0, 2400));
+        sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, 0.075, 0, 2000));
     }
 
     @Override
@@ -270,6 +270,8 @@ public class Robot extends IterativeRobot {
                 drive.arcadeDrive(-.8,0);
             }
         }
+
+
 
         // Gyro reset
         if (buttonGyroReset.get()) {
@@ -338,7 +340,8 @@ public class Robot extends IterativeRobot {
             resetLift = new JoystickButton(xbox, 1);
 
             buttonShooterOut = new JoystickButton(xbox, 5);
-            //buttonShooterWheelspinIn = new JoystickButton(joystick, 2);
+            buttonShooterPlace = new JoystickButton(joystick, 2);
+            button180NoDoritoe = new JoystickButton(joystick, 3);
             buttonShooterIn = new JoystickButton(joystick, 1);
             buttonShooterOutSlow = new JoystickButton(xbox, 6);
         }
@@ -346,6 +349,10 @@ public class Robot extends IterativeRobot {
 
     private void drive() {
         // Drive values
+        if (button180NoDoritoe.get()) {
+            sequentialExecutor.execute(new AutonomousDriveThread(0, -1, 2000));
+        }
+
         double moveVal = SmartDashboard2.put("moveVal", joystick.getY());
         double twistVal = SmartDashboard2.put("twistVal", joystick.getTwist());
         double throttleVal = SmartDashboard2.put("throttleVal",
@@ -405,14 +412,17 @@ public class Robot extends IterativeRobot {
             liftSwitchEnabled = false;
         }
         if(liftSwitchEnabled) { //If limit switch doesnt break
-            if (buttonShooterLiftUp.get() && shooterLiftPID.isEnabled() /*&& SmartDashboard2.get("liftSetpoint", 0) + liftSetpoint + ANGLE_LIFT_INCREMENT < 600*/) {
+            if (buttonShooterPlace.get() && shooterLiftPID.isEnabled()) {
+                SmartDashboard2.put("liftSetpoint", 3600);
+            }
+            else if (buttonShooterLiftUp.get() && shooterLiftPID.isEnabled() /*&& SmartDashboard2.get("liftSetpoint", 0) + liftSetpoint + ANGLE_LIFT_INCREMENT < 600*/) {
                 SmartDashboard2.put("liftSetpoint", liftSetpoint + ANGLE_LIFT_INCREMENT);
             } else if (buttonShooterLiftDown.get() && liftLimit.get() && shooterLiftPID.isEnabled()) {
                 SmartDashboard2.put("liftSetpoint", liftSetpoint - ANGLE_LIFT_INCREMENT);
             }
             // Not else if because should reset while holding above buttons
             if (resetLift.get()) {
-                SmartDashboard2.put("liftSetpoint", 0);
+                SmartDashboard2.put("liftSetpoint", 0.0);
             }
 
             // Liftlimit should enable/disable PID
