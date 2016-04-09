@@ -117,7 +117,7 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void robotInit() {
-
+        SmartDashboard2.setNetwork(true);
         VictorSP frontLeft = new VictorSP(PORT_DRIVE_FRONT_LEFT);
         VictorSP rearLeft = new VictorSP(PORT_DRIVE_REAR_LEFT);
         VictorSP frontRight = new VictorSP(PORT_DRIVE_FRONT_RIGHT);
@@ -267,7 +267,7 @@ public class Robot extends IterativeRobot {
         shootAndIntake();
         if(joystick.getRawButton(9)){
             encoder.reset();
-            while(encoder.getDistance() > -900){
+            while(encoder.getDistance() > -430){
                 drive.arcadeDrive(-.8,0);
             }
         }
