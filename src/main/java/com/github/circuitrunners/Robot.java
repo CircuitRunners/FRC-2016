@@ -59,9 +59,9 @@ public class Robot extends IterativeRobot {
     private static final double KD_THIS_SHIT = 0;
     private static final double TOLERANCE_THIS_SHIT = 0.1;
 
-    private static final double KP_LIFT = -0.001;
-    private static final double KI_LIFT = 0;
-    private static final double KD_LIFT = 0;
+    private static final double KP_LIFT = 0.2;
+    private static final double KI_LIFT = 0.1;
+    private static final double KD_LIFT = 0.1;
 
     //Shooter Constants
     private static final double SPEED_SHOOTER_WHEEL_LEFT = 1;
