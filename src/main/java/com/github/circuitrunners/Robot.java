@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.buttons.Button;
 import edu.wpi.first.wpilibj.buttons.JoystickButton;
 import edu.wpi.first.wpilibj.networktables.NetworkTable;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.tables.ITable;
 
 import java.util.concurrent.ExecutorService;
@@ -119,6 +120,8 @@ public class Robot extends IterativeRobot {
     private Relay lightRelay;
     private JoystickButton buttonFlashlight;
 
+    private AnalogOutput analogOut;
+
     @Override
     public void robotInit() {
         SmartDashboard2.setNetwork(true);
@@ -162,6 +165,8 @@ public class Robot extends IterativeRobot {
         } */
 
         lightRelay = new Relay(0);
+
+        analogOut = new AnalogOutput(0);
     }
 
     private final DigitalInput directionSwitch = new DigitalInput(1);
@@ -258,6 +263,7 @@ public class Robot extends IterativeRobot {
 
         // Drive Controls
         setControlType(SmartDashboard2.get("driverControlType", DRIVER_CONTROL_TYPE));
+        SmartDashboard.putNumber("voltage",0);
     }
 
     boolean triggerPressed; //so lonely
@@ -267,6 +273,7 @@ public class Robot extends IterativeRobot {
     public void teleopPeriodic() {
 
         lightRelay.set(!buttonFlashlight.get() ? Relay.Value.kForward : Relay.Value.kOff);
+        analogOut.setVoltage(SmartDashboard.getNumber("voltage",0));
 
         drive();
         liftShooter();
