@@ -116,6 +116,8 @@ public class Robot extends IterativeRobot {
     private Runnable shootIn = new ShooterInSet();
     private Button button180NoDoritoe;
 
+    private Relay relay;
+
     @Override
     public void robotInit() {
         SmartDashboard2.setNetwork(true);
@@ -157,6 +159,8 @@ public class Robot extends IterativeRobot {
         } catch (NIVisionException e) {
             e.printStackTrace();
         } */
+
+        relay = new Relay(0);
     }
 
     private final DigitalInput directionSwitch = new DigitalInput(1);
@@ -263,6 +267,8 @@ public class Robot extends IterativeRobot {
 
     @Override
     public void teleopPeriodic() {
+
+        relay.set(joystick.getRawButton(10) ? Relay.Value.kForward : Relay.Value.kOff);
 
         drive();
         liftShooter();
