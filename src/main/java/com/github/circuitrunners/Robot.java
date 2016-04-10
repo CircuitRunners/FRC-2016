@@ -10,7 +10,6 @@ import com.github.circuitrunners.system.command.HomeLift;
 import com.github.circuitrunners.system.command.Move;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.command.Scheduler;
-import edu.wpi.first.wpilibj.vision.AxisCamera;
 
 public class Robot extends IterativeRobot {
 
@@ -22,7 +21,7 @@ public class Robot extends IterativeRobot {
     private Xbox xbox;
     private ButtonPipeline pipeline;
 
-    private AxisCamera camera;
+    //private AxisCamera camera;
 
     @Override
     public void robotInit() {
@@ -40,7 +39,7 @@ public class Robot extends IterativeRobot {
         xbox = new Xbox(RobotValueMap.PORT_XBOX);
         pipeline = new ButtonPipeline(joystick, xbox);
 
-        camera = new AxisCamera("10.10.2.11");
+        //camera = new AxisCamera("10.10.2.11");
     }
 
     private final DigitalInput directionSwitch = new DigitalInput(1);
