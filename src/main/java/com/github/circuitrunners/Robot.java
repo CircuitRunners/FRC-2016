@@ -116,7 +116,8 @@ public class Robot extends IterativeRobot {
     private Runnable shootIn = new ShooterInSet();
     private Button button180NoDoritoe;
 
-    private Relay relay;
+    private Relay lightRelay;
+    private JoystickButton buttonFlashlight;
 
     @Override
     public void robotInit() {
@@ -160,7 +161,7 @@ public class Robot extends IterativeRobot {
             e.printStackTrace();
         } */
 
-        relay = new Relay(0);
+        lightRelay = new Relay(0);
     }
 
     private final DigitalInput directionSwitch = new DigitalInput(1);
@@ -265,7 +266,7 @@ public class Robot extends IterativeRobot {
     @Override
     public void teleopPeriodic() {
 
-        relay.set(joystick.getRawButton(10) ? Relay.Value.kForward : Relay.Value.kOff);
+        lightRelay.set(!buttonFlashlight.get() ? Relay.Value.kForward : Relay.Value.kOff);
 
         drive();
         liftShooter();
@@ -346,10 +347,11 @@ public class Robot extends IterativeRobot {
             resetLift = new JoystickButton(xbox, 1);
 
             buttonShooterOut = new JoystickButton(xbox, 5);
-            buttonShooterPlace = new JoystickButton(joystick, 2);
+            buttonShooterPlace = new JoystickButton(joystick, 10);
             button180NoDoritoe = new JoystickButton(joystick, 3);
             buttonShooterIn = new JoystickButton(joystick, 1);
             buttonShooterOutSlow = new JoystickButton(xbox, 6);
+            buttonFlashlight = new JoystickButton(joystick, 2);
         }
     }
 
