@@ -244,7 +244,7 @@ public class Robot extends IterativeRobot {
         sequentialExecutor.execute(new HomeThread(timeoutSwitch.get() ? 3000 : 0));
         shooterLiftPID.disable();
 
-        sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, -0.075, 0, 4000));
+        sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, 0, 0, 4000));
     }
 
     @Override
