@@ -272,7 +272,7 @@ public class Robot extends IterativeRobot {
     @Override
     public void teleopPeriodic() {
 
-        analogOut.setVoltage(buttonFlashlight.get() ? 3.3 : 0);
+        lightRelay.set(buttonFlashlight.get() ? Relay.Value.kForward : Relay.Value.kOff);
         //analogOut.setVoltage(SmartDashboard.getNumber("voltage",0));
 
         drive();
