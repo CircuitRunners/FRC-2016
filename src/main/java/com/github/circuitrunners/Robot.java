@@ -170,7 +170,7 @@ public class Robot extends IterativeRobot {
     }
 
     private final DigitalInput directionSwitch = new DigitalInput(1);
-    private final DigitalInput timeoutSwitch = new DigitalInput(2);
+    private final DigitalInput spybotSwitch = new DigitalInput(2);
 
     private class HomeThread implements Runnable {
         int timeout;
@@ -239,12 +239,64 @@ public class Robot extends IterativeRobot {
         }
     }
 
+    private class AutonomousEncoderDrive implements Runnable{
+        double moveVal;
+        double rotateVal;
+        int driveDirection;
+        double encodedDistance;
+        double encoderValue;
+        long timeout;
+
+        private AutonomousEncoderDrive(double moveVal, double rotateVal, double encodedDistance, int driveDirection, long timeout){
+            this.moveVal = moveVal;
+            this.rotateVal = rotateVal;
+            this.encodedDistance = encodedDistance;
+            this.driveDirection = driveDirection;
+            this.timeout = timeout;
+        }
+
+        private AutonomousEncoderDrive(double moveVal, double encodedDistance, int driveDirection, long timeout) {
+            this.moveVal = moveVal;
+            this.rotateVal = 0;
+            this.encodedDistance = encodedDistance;
+            this.driveDirection = driveDirection;
+            this.timeout = timeout;
+        }
+
+            @Override
+        public void run() {
+            long last = System.currentTimeMillis();
+            long curr;
+            long diff = 0;
+            encoderValue = Math.abs(encoder.getDistance());
+            while(encoderValue < encodedDistance){
+                drive.arcadeDrive(driveDirection * moveVal,rotateVal);
+                encoderValue = Math.abs(encoder.getDistance());
+                curr = System.currentTimeMillis();
+                diff = curr - last;
+                if(diff > timeout) break;
+            }
+        }
+    }
+
+    private class AutonomousShoot implements Runnable {
+
+        @Override
+        public void run(){
+            shooterWheelRight.set(SPEED_SHOOTER_WHEEL_RIGHT);
+            shooterWheelLeft.set(SPEED_SHOOTER_WHEEL_LEFT);
+        }
+    }
+
     @Override
     public void autonomousInit() {
-        sequentialExecutor.execute(new HomeThread(timeoutSwitch.get() ? 3000 : 0));
         shooterLiftPID.disable();
 
-        sequentialExecutor.execute(new AutonomousDriveThread(directionSwitch.get() ? 0.8 : -0.8, 0, 0, 4000));
+        if(spybotSwitch.get()) {
+            sequentialExecutor.execute(new AutonomousEncoderDrive(0.4, 4000, 1, 3000));
+            sequentialExecutor.execute(new ShooterOutSet(1));
+        }
+        else sequentialExecutor.execute(new AutonomousDriveThread())
     }
 
     @Override
@@ -257,7 +309,7 @@ public class Robot extends IterativeRobot {
         // Just in case...
         thisPIDController.disable();
 
-       // sequentialExecutor.execute(new HomeThread(timeoutSwitch.get() ? 3000 : 0));
+       // sequentialExecutor.execute(new HomeThread(spybotSwitch.get() ? 3000 : 0));
         shooterLiftPID.disable();
         shooterLiftPID.setSetpoint(SmartDashboard2.put("liftSetpoint",0));
 
