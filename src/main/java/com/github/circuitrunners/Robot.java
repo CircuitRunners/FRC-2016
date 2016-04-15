@@ -296,7 +296,7 @@ public class Robot extends IterativeRobot {
             sequentialExecutor.execute(new AutonomousEncoderDrive(0.4, 4000, 1, 3000));
             sequentialExecutor.execute(new ShooterOutSet(1));
         }
-        else sequentialExecutor.execute(new AutonomousDriveThread())
+        else sequentialExecutor.execute(new AutonomousDriveThread((directionSwitch.get() ? 0.8 : -0.8), 0, 0, 4000));
     }
 
     @Override
