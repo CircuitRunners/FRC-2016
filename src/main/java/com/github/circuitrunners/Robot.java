@@ -239,12 +239,9 @@ public class Robot extends IterativeRobot {
         }
     }
 
-    private class AutonomousEncoderDrive implements Runnable{
-        double moveVal;
-        double rotateVal;
+    private class AutonomousEncoderDrive implements Runnable {
+        double moveVal, rotateVal, encodedDistance;
         int driveDirection;
-        double encodedDistance;
-        double encoderValue;
         long timeout;
 
         private AutonomousEncoderDrive(double moveVal, double rotateVal, double encodedDistance, int driveDirection, long timeout){
@@ -265,17 +262,17 @@ public class Robot extends IterativeRobot {
 
             @Override
         public void run() {
-            long last = System.currentTimeMillis();
-            long curr;
-            long diff = 0;
-            encoderValue = Math.abs(encoder.getDistance());
-            while(encoderValue < encodedDistance){
-                drive.arcadeDrive(driveDirection * moveVal,rotateVal);
-                encoderValue = Math.abs(encoder.getDistance());
+            long last = System.currentTimeMillis(), curr, diff;
+            double move = driveDirection * moveVal;
+            double encoderValue = Math.abs(encoder.getDistance());
+            while (encoderValue < encodedDistance) {
                 curr = System.currentTimeMillis();
                 diff = curr - last;
-                if(diff > timeout) break;
+                if (diff > timeout) break;
+                drive.arcadeDrive(move, rotateVal);
+                encoderValue = Math.abs(encoder.getDistance());
             }
+            drive.arcadeDrive(0, 0);
         }
     }
 
@@ -294,7 +291,7 @@ public class Robot extends IterativeRobot {
 
         if(spybotSwitch.get()) {
             sequentialExecutor.execute(new AutonomousEncoderDrive(0.4, 4000, 1, 3000));
-            sequentialExecutor.execute(new ShooterOutSet(1));
+            sequentialExecutor.execute(shootOut);
         }
         else sequentialExecutor.execute(new AutonomousDriveThread((directionSwitch.get() ? 0.8 : -0.8), 0, 0, 4000));
     }
